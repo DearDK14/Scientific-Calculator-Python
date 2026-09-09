@@ -113,14 +113,76 @@ class TestCalculatorEngine(unittest.TestCase):
         self.assertEqual(self.calc.calculate(), "20")
         self.assertEqual(self.calc.previous_expression, "12 + 8 =")
 
-    def test_multiplication_symbol_and_precedence(self):
+    def test_basic_subtraction_and_multiplication(self):
         self.calc.current_input = "5 × 4 + 2"
         self.assertEqual(self.calc.calculate(), "22")
+
+        self.calc.current_input = "50 − 20"
+        self.assertEqual(self.calc.calculate(), "30")
+
+    def test_decimals(self):
+        self.calc.append_number("3")
+        self.calc.append_decimal()
+        self.calc.append_number("14")
+        self.calc.append_decimal()  # Should be ignored (no duplicate dot)
+        self.assertEqual(self.calc.current_input, "3.14")
+        self.calc.append_operator("+")
+        self.calc.append_decimal()  # Should become ' 0.'
+        self.calc.append_number("86")
+        self.assertEqual(self.calc.calculate(), "4")
+
+    def test_negative_numbers_and_sign_toggle(self):
+        self.calc.current_input = "5"
+        self.calc.toggle_sign()
+        self.assertEqual(self.calc.current_input, "-5")
+        self.calc.toggle_sign()
+        self.assertEqual(self.calc.current_input, "5")
+
+        # Negative in expression
+        self.calc.current_input = "-5 + 3"
+        self.assertEqual(self.calc.calculate(), "-2")
+
+        # Multiplying negative
+        self.calc.current_input = "5 × -2"
+        self.assertEqual(self.calc.calculate(), "-10")
+
+    def test_percentages(self):
+        self.calc.current_input = "50%"
+        self.assertEqual(self.calc.calculate(), "0.5")
+
+        self.calc.current_input = "200 × 15%"
+        self.assertEqual(self.calc.calculate(), "30")
+
+    def test_parentheses_and_precedence(self):
+        # Explicit parentheses
+        self.calc.current_input = "(2 + 3) × 4"
+        self.assertEqual(self.calc.calculate(), "20")
+
+        # Implicit multiplication 5(2+3)
+        self.calc.current_input = "5(2 + 3)"
+        self.assertEqual(self.calc.calculate(), "25")
+
+        # Auto-closing parentheses
+        self.calc.current_input = "(10 + 5"
+        self.assertEqual(self.calc.calculate(), "15")
 
     def test_division_by_zero(self):
         self.calc.current_input = "10 ÷ 0"
         res = self.calc.calculate()
         self.assertIn("Division by zero", res)
+
+        self.calc.current_input = "5 / (2 - 2)"
+        res = self.calc.calculate()
+        self.assertIn("Division by zero", res)
+
+    def test_invalid_expressions_handled_gracefully(self):
+        self.calc.current_input = "5 / * 2"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+
+        self.calc.current_input = "()"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
 
     def test_backspace(self):
         self.calc.current_input = "1234"

@@ -6,8 +6,9 @@ Core calculation engine and state manager for the Scientific Calculator.
 Key Design Principles:
 1. Complete separation of calculation logic from GUI code.
 2. Safe AST (Abstract Syntax Tree) expression parser - avoids unsafe `eval()`.
-3. Handles arithmetic precedence, brackets, scientific functions, and memory.
-4. Integrates seamlessly with `scientific.py` and `history.py`.
+3. Handles arithmetic precedence (PEMDAS/BODMAS), brackets, decimals, negatives,
+   percentages, scientific functions, and memory.
+4. Graceful error handling: division by zero, invalid expressions, overflow without crashing.
 """
 
 import ast
@@ -37,7 +38,7 @@ class SafeMathEvaluator:
         ast.Pow: lambda a, b: ScientificEngine.power(a, b),
     }
 
-    # Allowed unary operators
+    # Allowed unary operators (+, -)
     UNARY_OPS = {
         ast.UAdd: lambda a: +a,
         ast.USub: lambda a: -a,
@@ -46,19 +47,19 @@ class SafeMathEvaluator:
     @staticmethod
     def _safe_div(a: float, b: float) -> float:
         if b == 0:
-            raise ZeroDivisionError("Cannot divide by zero")
+            raise ZeroDivisionError("Division by zero")
         return a / b
 
     @staticmethod
     def _safe_floordiv(a: float, b: float) -> float:
         if b == 0:
-            raise ZeroDivisionError("Cannot divide by zero")
+            raise ZeroDivisionError("Division by zero")
         return a // b
 
     @staticmethod
     def _safe_mod(a: float, b: float) -> float:
         if b == 0:
-            raise ZeroDivisionError("Modulo by zero")
+            raise ZeroDivisionError("Division by zero")
         return a % b
 
     def __init__(self, angle_mode: str = "DEG"):
@@ -105,7 +106,7 @@ class SafeMathEvaluator:
         if isinstance(node, ast.Constant):  # Python 3.8+ numbers/constants
             if isinstance(node.value, (int, float)):
                 return float(node.value)
-            raise ValueError(f"Invalid constant type: {type(node.value).__name__}")
+            raise ValueError("Invalid constant type")
 
         elif isinstance(node, ast.Name):
             constants = self._get_constants()
@@ -118,7 +119,7 @@ class SafeMathEvaluator:
             if op_type in self.UNARY_OPS:
                 val = self._evaluate_node(node.operand)
                 return self.UNARY_OPS[op_type](val)
-            raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
+            raise ValueError("Unsupported operator")
 
         elif isinstance(node, ast.BinOp):
             op_type = type(node.op)
@@ -126,30 +127,34 @@ class SafeMathEvaluator:
                 left = self._evaluate_node(node.left)
                 right = self._evaluate_node(node.right)
                 return self.BINARY_OPS[op_type](left, right)
-            raise ValueError(f"Unsupported binary operator: {op_type.__name__}")
+            raise ValueError("Unsupported operator")
 
         elif isinstance(node, ast.Call):
             if not isinstance(node.func, ast.Name):
-                raise ValueError("Invalid function call syntax")
+                raise ValueError("Invalid function call")
             func_name = node.func.id
             functions = self._get_functions()
             if func_name not in functions:
-                raise ValueError(f"Unknown mathematical function: '{func_name}'")
+                raise ValueError(f"Unknown function '{func_name}'")
 
             args = [self._evaluate_node(arg) for arg in node.args]
             if len(args) != 1:
-                raise ValueError(f"Function '{func_name}' expects 1 argument, got {len(args)}")
+                raise ValueError(f"Function '{func_name}' expects 1 argument")
 
             return float(functions[func_name](args[0]))
 
-        raise ValueError(f"Unsupported expression construct: {type(node).__name__}")
+        raise ValueError("Invalid expression")
 
     def evaluate(self, expression: str) -> float:
         """Parses and computes the result of the mathematical expression."""
         if not expression or not expression.strip():
-            raise ValueError("Expression is empty")
+            raise ValueError("Invalid expression")
 
-        parsed = ast.parse(expression.strip(), mode="eval")
+        try:
+            parsed = ast.parse(expression.strip(), mode="eval")
+        except SyntaxError:
+            raise ValueError("Invalid expression")
+
         return self._evaluate_node(parsed.body)
 
 
@@ -242,13 +247,19 @@ class CalculatorEngine:
 
     def append_decimal(self) -> str:
         """Appends a decimal point, ensuring no duplicate dots in the current token."""
-        if self.is_new_calculation or "Error" in self.current_input:
+        if self.is_new_calculation or "Error" in self.current_input or self.current_input == "0":
             self.current_input = "0."
             self.is_new_calculation = False
             return self.current_input
 
-        # Check if the last number in expression already has a decimal point
-        tokens = re.split(r"[+\-*/^() ]", self.current_input)
+        stripped = self.current_input.rstrip()
+        # If following an operator or opening parenthesis, append '0.'
+        if stripped and stripped[-1] in "+-−×÷/*^(":
+            self.current_input = f"{stripped} 0."
+            return self.current_input
+
+        # Check if the last number token already has a decimal point
+        tokens = re.split(r"[+\-−×÷/*^() ]", self.current_input)
         last_token = tokens[-1] if tokens else ""
         if "." not in last_token:
             self.current_input += "."
@@ -260,17 +271,33 @@ class CalculatorEngine:
             self.current_input = "0"
 
         self.is_new_calculation = False
-        # Normalize operator display
-        op_symbol = op
-        if op == "*":
-            op_symbol = "×"
-        elif op == "/":
-            op_symbol = "÷"
 
-        # If current input ends with an operator, replace it
+        # Normalize operator symbol
+        if op in ("*", "×"):
+            op_symbol = "×"
+        elif op in ("/", "÷"):
+            op_symbol = "÷"
+        elif op in ("-", "−"):
+            op_symbol = "−"
+        else:
+            op_symbol = "+" if op == "+" else op
+
         stripped = self.current_input.rstrip()
-        if stripped and stripped[-1] in "+-×÷^":
-            self.current_input = stripped[:-1] + f" {op_symbol} "
+
+        # If user starts with minus on initial 0, treat as negative sign
+        if self.current_input == "0" and op_symbol in ("-", "−"):
+            self.current_input = "−"
+            return self.current_input
+
+        # If previous character is an operator or open bracket and op is minus,
+        # allow unary minus e.g. '5 × −' or '(−'
+        if op_symbol in ("-", "−") and stripped and stripped[-1] in "×÷/*^(":
+            self.current_input = f"{stripped} −"
+            return self.current_input
+
+        # If current input already ends with an operator, replace it
+        if stripped and stripped[-1] in "+-−×÷^":
+            self.current_input = stripped[:-1].rstrip() + f" {op_symbol} "
         else:
             self.current_input = f"{self.current_input} {op_symbol} "
 
@@ -292,8 +319,8 @@ class CalculatorEngine:
             self.current_input = symbol
             self.is_new_calculation = False
         else:
-            # If following a digit, add implicit multiplication
-            if self.current_input[-1].isdigit():
+            # If following a digit or closing parenthesis, add implicit multiplication
+            if self.current_input[-1].isdigit() or self.current_input[-1] == ")":
                 self.current_input += f" × {symbol}"
             else:
                 self.current_input += symbol
@@ -333,7 +360,7 @@ class CalculatorEngine:
             try:
                 val = float(self.current_input)
             except ValueError:
-                self.current_input = "Error: Invalid Input"
+                self.current_input = "Error: Invalid expression"
                 self.is_new_calculation = True
                 return self.current_input
 
@@ -353,7 +380,7 @@ class CalculatorEngine:
             elif op == "sqrt":
                 res = ScientificEngine.sqrt(val)
             else:
-                raise ValueError(f"Unknown unary op: {op}")
+                raise ValueError("Invalid operation")
 
             formatted = self._format_number(res)
             self.previous_expression = f"{op}({self._format_number(val)})"
@@ -362,32 +389,57 @@ class CalculatorEngine:
             self.is_new_calculation = True
             return self.current_input
 
-        except (ZeroDivisionError, ValueError, OverflowError) as err:
+        except ZeroDivisionError:
+            self.current_input = "Error: Division by zero"
+            self.is_new_calculation = True
+            return self.current_input
+        except OverflowError:
+            self.current_input = "Error: Number too large"
+            self.is_new_calculation = True
+            return self.current_input
+        except ValueError as err:
             self.current_input = f"Error: {err}"
             self.is_new_calculation = True
             return self.current_input
 
     def toggle_sign(self) -> str:
-        """Toggles the sign (+/-) of the current number."""
+        """Toggles the sign (+/-) of the current number or trailing operand."""
         if "Error" in self.current_input or self.current_input == "0":
             return self.current_input
 
-        # If current input is a single number, flip sign
+        # Check if the whole string is a simple number
         try:
             val = float(self.current_input)
             if val.is_integer():
-                val_int = int(val)
-                self.current_input = str(-val_int)
+                self.current_input = str(-int(val))
             else:
                 self.current_input = str(-val)
             return self.current_input
         except ValueError:
-            # If expression, wrap in -()
-            if self.current_input.startswith("-(") and self.current_input.endswith(")"):
-                self.current_input = self.current_input[2:-1]
-            else:
-                self.current_input = f"-({self.current_input})"
+            pass
+
+        # Check if expression ends with (-num)
+        neg_match = re.search(r"\(-(\d+(?:\.\d+)?)\)$", self.current_input)
+        if neg_match:
+            start, _ = neg_match.span()
+            num = neg_match.group(1)
+            self.current_input = self.current_input[:start] + num
             return self.current_input
+
+        # Check if expression ends with a positive number
+        pos_match = re.search(r"(\d+(?:\.\d+)?)$", self.current_input)
+        if pos_match:
+            start, _ = pos_match.span()
+            num = pos_match.group(1)
+            self.current_input = self.current_input[:start] + f"(-{num})"
+            return self.current_input
+
+        # Otherwise wrap/unwrap entire expression
+        if self.current_input.startswith("-(") and self.current_input.endswith(")"):
+            self.current_input = self.current_input[2:-1]
+        else:
+            self.current_input = f"-({self.current_input})"
+        return self.current_input
 
     def backspace(self) -> str:
         """Removes the last character from current input."""
@@ -428,27 +480,45 @@ class CalculatorEngine:
     def _sanitize_for_evaluation(self, expr_str: str) -> str:
         """
         Converts human-readable calculator expression into valid Python AST syntax.
-        Examples:
-          - '2 × 3'  -> '2 * 3'
-          - '8 ÷ 2'  -> '8 / 2'
-          - '2 ^ 3'  -> '2 ** 3'
-          - 'π'      -> 'pi'
-          - '√25'    -> 'sqrt(25)'
-          - '5!'     -> 'fact(5)'
+        Handles unicode symbols, percentages, factorials, implicit multiplication,
+        and unclosed parentheses.
         """
         s = expr_str.strip()
+
+        # Replace unicode symbols with standard Python math operators
         s = s.replace("×", "*").replace("÷", "/")
+        s = s.replace("−", "-")
         s = s.replace("^", "**")
         s = s.replace("π", "pi")
 
-        # Convert 'sqrt(' or '√'
+        # Convert percentage: e.g. '50%' -> '(50/100)'
+        s = re.sub(r"(\d+(?:\.\d+)?)\s*%", r"(\1/100)", s)
+
+        # Convert factorial: e.g. '5!' -> 'fact(5)'
+        s = re.sub(r"(\d+(?:\.\d+)?)\s*\!", r"fact(\1)", s)
+
+        # Convert square root: '√25' -> 'sqrt(25)', '√(25)' -> 'sqrt(25)'
         s = s.replace("√(", "sqrt(")
-        s = re.sub(r"√(\d+(?:\.\d+)?)", r"sqrt(\1)", s)
+        s = re.sub(r"√\s*(\d+(?:\.\d+)?)", r"sqrt(\1)", s)
 
-        # Convert factorial like 5! -> fact(5)
-        s = re.sub(r"(\d+(?:\.\d+)?)\!", r"fact(\1)", s)
+        # Implicit multiplication:
+        # 1. Number before '(': '5(2+3)' -> '5 * (2+3)'
+        s = re.sub(r"(\d+(?:\.\d+)?)\s*\(", r"\1 * (", s)
+        # 2. ')' before number: '(2+3)5' -> '(2+3) * 5'
+        s = re.sub(r"\)\s*(\d+(?:\.\d+)?)", r") * \1", s)
+        # 3. ')' before '(': '(2+3)(4+1)' -> '(2+3) * (4+1)'
+        s = re.sub(r"\)\s*\(", r") * (", s)
+        # 4. Number before constant: '2pi' -> '2 * pi', '3e' -> '3 * e'
+        s = re.sub(r"(\d+(?:\.\d+)?)\s*(pi|e)\b", r"\1 * \2", s)
+        # 5. Constant before '(': 'pi(2)' -> 'pi * (2)'
+        s = re.sub(r"\b(pi|e)\s*\(", r"\1 * (", s)
+        # 6. ')' before constant: '(2)pi' -> '(2) * pi'
+        s = re.sub(r"\)\s*(pi|e)\b", r") * \1", s)
 
-        # Balance parentheses automatically if open > close
+        # Strip trailing operators: '5 +' -> '5'
+        s = re.sub(r"[+\-*/]\s*$", "", s)
+
+        # Automatically balance unclosed open parentheses
         open_count = s.count("(")
         close_count = s.count(")")
         if open_count > close_count:
@@ -457,15 +527,15 @@ class CalculatorEngine:
         return s
 
     def evaluate_expression(self, expression_str: str) -> float:
-        """Evaluates an expression string using SafeMathEvaluator."""
+        """Evaluates an expression string safely using SafeMathEvaluator."""
         sanitized = self._sanitize_for_evaluation(expression_str)
         evaluator = SafeMathEvaluator(angle_mode=self.angle_mode)
         return evaluator.evaluate(sanitized)
 
     def calculate(self) -> str:
         """
-        Evaluates the current input, updates history, and sets previous expression.
-        Returns the formatted result string or error message.
+        Evaluates current input, updates history, and sets previous expression.
+        Returns the formatted result string or clear error message.
         """
         if "Error" in self.current_input:
             return self.current_input
@@ -493,19 +563,22 @@ class CalculatorEngine:
 
         except OverflowError:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = "Error: Overflow"
+            self.current_input = "Error: Number too large"
             self.is_new_calculation = True
             return self.current_input
 
         except ValueError as ve:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = f"Error: {ve}"
+            msg = str(ve)
+            if not msg.startswith("Error"):
+                msg = f"Error: {msg}"
+            self.current_input = msg
             self.is_new_calculation = True
             return self.current_input
 
         except Exception:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = "Error: Syntax"
+            self.current_input = "Error: Invalid expression"
             self.is_new_calculation = True
             return self.current_input
 

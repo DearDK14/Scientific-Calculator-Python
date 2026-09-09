@@ -404,6 +404,10 @@ class ScientificCalculatorApp(ctk.CTk):
         self.engine.clear()
         self._update_display()
 
+    def _on_all_clear(self) -> None:
+        self.engine.all_clear()
+        self._update_display()
+
     def _toggle_angle_mode(self) -> None:
         new_mode = self.engine.toggle_angle_mode()
         self.deg_rad_btn.configure(text=new_mode)
@@ -425,11 +429,16 @@ class ScientificCalculatorApp(ctk.CTk):
 
         # Basic Operators
         self.bind("+", lambda event: self._on_operator("+"))
+        self.bind("<KP_Add>", lambda event: self._on_operator("+"))
         self.bind("-", lambda event: self._on_operator("-"))
+        self.bind("<KP_Subtract>", lambda event: self._on_operator("-"))
         self.bind("*", lambda event: self._on_operator("*"))
+        self.bind("<KP_Multiply>", lambda event: self._on_operator("*"))
         self.bind("/", lambda event: self._on_operator("/"))
+        self.bind("<KP_Divide>", lambda event: self._on_operator("/"))
         self.bind("^", lambda event: self._on_operator("^"))
         self.bind(".", lambda event: self._on_decimal())
+        self.bind("<KP_Decimal>", lambda event: self._on_decimal())
         self.bind("%", lambda event: self._on_unary("percent"))
         self.bind("!", lambda event: self._on_unary("fact"))
 
@@ -437,15 +446,17 @@ class ScientificCalculatorApp(ctk.CTk):
         self.bind("(", lambda event: self._on_bracket("("))
         self.bind(")", lambda event: self._on_bracket(")"))
 
-        # Equals / Enter
-        self.bind("<Return>", lambda event: self._on_equals())
-        self.bind("<KP_Enter>", lambda event: self._on_equals())
+        # Equals / Enter (bind_all ensures it triggers even when a button has focus)
+        self.bind_all("<Return>", lambda event: self._on_equals())
+        self.bind_all("<KP_Enter>", lambda event: self._on_equals())
         self.bind("=", lambda event: self._on_equals())
 
         # Clear & Delete
-        self.bind("<BackSpace>", lambda event: self._on_backspace())
-        self.bind("<Delete>", lambda event: self._on_clear())
-        self.bind("<Escape>", lambda event: self._on_clear())
+        self.bind_all("<BackSpace>", lambda event: self._on_backspace())
+        self.bind_all("<Delete>", lambda event: self._on_clear())
+        self.bind_all("<Escape>", lambda event: self._on_clear())
+        self.bind("c", lambda event: self._on_clear())
+        self.bind("C", lambda event: self._on_clear())
 
         # Mathematical constants
         self.bind("p", lambda event: self._on_constant("pi"))
