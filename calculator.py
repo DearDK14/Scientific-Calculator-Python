@@ -6,9 +6,10 @@ Core calculation engine and state manager for the Scientific Calculator.
 Key Design Principles:
 1. Complete separation of calculation logic from GUI code.
 2. Safe AST (Abstract Syntax Tree) expression parser - avoids unsafe `eval()`.
-3. Handles arithmetic precedence (PEMDAS/BODMAS), brackets, decimals, negatives,
-   percentages, scientific functions, and memory.
-4. Graceful error handling: division by zero, invalid expressions, overflow without crashing.
+3. Advanced mathematical operations: Square (x²), Square Root (√x), Power (xʸ),
+   Percentage (%), Reciprocal (1/x), Plus/Minus (±), Factorial (x!), Absolute Value (|x|).
+4. Graceful error handling: negative square roots, invalid factorials, division by zero,
+   overflow limits, and invalid expressions.
 """
 
 import ast
@@ -347,8 +348,8 @@ class CalculatorEngine:
 
     def apply_unary_operation(self, op: str) -> str:
         """
-        Applies immediate unary operation like square (x²), reciprocal (1/x),
-        cube (x³), factorial (n!), or percentage (%).
+        Applies immediate unary operation like square (x²), square root (√x),
+        reciprocal (1/x), cube (x³), factorial (n!), percentage (%), or absolute value (|x|).
         """
         if "Error" in self.current_input:
             return self.current_input
@@ -367,23 +368,30 @@ class CalculatorEngine:
         try:
             if op == "sqr":
                 res = ScientificEngine.square(val)
-            elif op == "cube":
-                res = ScientificEngine.cube(val)
-            elif op == "recip":
-                res = ScientificEngine.reciprocal(val)
-            elif op == "fact":
-                res = float(ScientificEngine.factorial(val))
-            elif op == "percent":
-                res = ScientificEngine.percentage(val)
-            elif op == "abs":
-                res = ScientificEngine.abs_val(val)
+                label = f"sqr({self._format_number(val)})"
             elif op == "sqrt":
                 res = ScientificEngine.sqrt(val)
+                label = f"√({self._format_number(val)})"
+            elif op == "cube":
+                res = ScientificEngine.cube(val)
+                label = f"cube({self._format_number(val)})"
+            elif op == "recip":
+                res = ScientificEngine.reciprocal(val)
+                label = f"1/({self._format_number(val)})"
+            elif op == "fact":
+                res = float(ScientificEngine.factorial(val))
+                label = f"{self._format_number(val)}!"
+            elif op == "percent":
+                res = ScientificEngine.percentage(val)
+                label = f"{self._format_number(val)}%"
+            elif op == "abs":
+                res = ScientificEngine.abs_val(val)
+                label = f"|{self._format_number(val)}|"
             else:
                 raise ValueError("Invalid operation")
 
             formatted = self._format_number(res)
-            self.previous_expression = f"{op}({self._format_number(val)})"
+            self.previous_expression = label
             self.history.add(self.previous_expression, formatted)
             self.current_input = formatted
             self.is_new_calculation = True
@@ -394,11 +402,14 @@ class CalculatorEngine:
             self.is_new_calculation = True
             return self.current_input
         except OverflowError:
-            self.current_input = "Error: Number too large"
+            self.current_input = "Error: Result too large"
             self.is_new_calculation = True
             return self.current_input
         except ValueError as err:
-            self.current_input = f"Error: {err}"
+            msg = str(err)
+            if not msg.startswith("Error"):
+                msg = f"Error: {msg}"
+            self.current_input = msg
             self.is_new_calculation = True
             return self.current_input
 
@@ -480,8 +491,8 @@ class CalculatorEngine:
     def _sanitize_for_evaluation(self, expr_str: str) -> str:
         """
         Converts human-readable calculator expression into valid Python AST syntax.
-        Handles unicode symbols, percentages, factorials, implicit multiplication,
-        and unclosed parentheses.
+        Handles unicode symbols, absolute values |x|, percentages, factorials,
+        implicit multiplication, and unclosed parentheses.
         """
         s = expr_str.strip()
 
@@ -490,6 +501,9 @@ class CalculatorEngine:
         s = s.replace("−", "-")
         s = s.replace("^", "**")
         s = s.replace("π", "pi")
+
+        # Convert absolute value: e.g. |-5| -> abs(-5)
+        s = re.sub(r"\|([^|]+)\|", r"abs(\1)", s)
 
         # Convert percentage: e.g. '50%' -> '(50/100)'
         s = re.sub(r"(\d+(?:\.\d+)?)\s*%", r"(\1/100)", s)
@@ -563,7 +577,7 @@ class CalculatorEngine:
 
         except OverflowError:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = "Error: Number too large"
+            self.current_input = "Error: Result too large"
             self.is_new_calculation = True
             return self.current_input
 

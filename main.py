@@ -64,8 +64,8 @@ class ScientificCalculatorApp(ctk.CTk):
         self.title("Scientific Calculator")
         self._set_window_icon()
         self.configure(fg_color=Theme.WINDOW_BG)
-        self.geometry("440x720")
-        self.minsize(360, 600)
+        self.geometry("440x760")
+        self.minsize(360, 640)
         self.resizable(True, True)
 
         # ---------------------------------------------------------------------
@@ -106,7 +106,7 @@ class ScientificCalculatorApp(ctk.CTk):
         # Row 4: Bottom Row (5x1)
         self.main_container.grid_rowconfigure(0, weight=0)  # Top Bar
         self.main_container.grid_rowconfigure(1, weight=0)  # Display
-        self.main_container.grid_rowconfigure(2, weight=5)  # Scientific
+        self.main_container.grid_rowconfigure(2, weight=6)  # Scientific
         self.main_container.grid_rowconfigure(3, weight=5)  # Main Keypad
         self.main_container.grid_rowconfigure(4, weight=1)  # Bottom Row
 
@@ -215,7 +215,7 @@ class ScientificCalculatorApp(ctk.CTk):
         for c in range(3):
             self.sci_frame.grid_columnconfigure(c, weight=1)
 
-        # 5 rows
+        # 6 rows
         sci_buttons = [
             # Row 0
             [("sin", lambda: self._on_func("sin")),
@@ -228,7 +228,7 @@ class ScientificCalculatorApp(ctk.CTk):
             # Row 2
             [("log", lambda: self._on_func("log10")),
              ("ln", lambda: self._on_func("ln")),
-             ("√", lambda: self._on_func("sqrt"))],
+             ("√", self._on_sqrt)],
             # Row 3
             [("x²", lambda: self._on_unary("sqr")),
              ("xʸ", lambda: self._on_operator("^")),
@@ -237,6 +237,10 @@ class ScientificCalculatorApp(ctk.CTk):
             [("e", lambda: self._on_constant("e")),
              ("!", lambda: self._on_unary("fact")),
              ("%", lambda: self._on_unary("percent"))],
+            # Row 5 (Reciprocal, Absolute Value, Cube)
+            [("1/x", lambda: self._on_unary("recip")),
+             ("|x|", lambda: self._on_unary("abs")),
+             ("x³", lambda: self._on_unary("cube"))],
         ]
 
         for r, row in enumerate(sci_buttons):
@@ -387,6 +391,16 @@ class ScientificCalculatorApp(ctk.CTk):
     def _on_unary(self, op: str) -> None:
         self.engine.apply_unary_operation(op)
         self._update_display()
+
+    def _on_sqrt(self) -> None:
+        """Handles square root: computes immediately if single number, else appends function."""
+        val_str = self.engine.current_input.strip()
+        try:
+            float(val_str)
+            self.engine.apply_unary_operation("sqrt")
+            self._update_display()
+        except ValueError:
+            self._on_func("sqrt")
 
     def _on_toggle_sign(self) -> None:
         self.engine.toggle_sign()

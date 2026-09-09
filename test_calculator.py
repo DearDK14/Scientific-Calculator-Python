@@ -2,6 +2,15 @@
 test_calculator.py
 ==================
 Unit tests for ScientificEngine, CalculatorEngine, and HistoryManager.
+Comprehensive coverage of basic arithmetic and advanced mathematical operations:
+- Square (x²)
+- Square root (√x)
+- Power (xʸ)
+- Percentage (%)
+- Reciprocal (1/x)
+- Plus/minus (±)
+- Factorial (x!)
+- Absolute value (|x|)
 """
 
 import unittest
@@ -38,26 +47,70 @@ class TestScientificEngine(unittest.TestCase):
         with self.assertRaises(ValueError):
             ScientificEngine.log10(-5)
 
-    def test_powers_and_roots(self):
+    # -------------------------------------------------------------------------
+    # Advanced Mathematical Operations Tests
+    # -------------------------------------------------------------------------
+    def test_square_and_overflow(self):
         self.assertEqual(ScientificEngine.square(5), 25.0)
-        self.assertEqual(ScientificEngine.cube(3), 27.0)
-        self.assertEqual(ScientificEngine.power(2, 4), 16.0)
+        self.assertEqual(ScientificEngine.square(-4), 16.0)
+        self.assertEqual(ScientificEngine.square(0), 0.0)
+        with self.assertRaises(OverflowError):
+            ScientificEngine.square(1e200)
+
+    def test_square_root_positive_and_negative(self):
         self.assertEqual(ScientificEngine.sqrt(49), 7.0)
-        with self.assertRaises(ValueError):
-            ScientificEngine.sqrt(-4)
+        self.assertEqual(ScientificEngine.sqrt(0), 0.0)
+        with self.assertRaises(ValueError) as ctx:
+            ScientificEngine.sqrt(-16)
+        self.assertIn("negative number", str(ctx.exception).lower())
 
-    def test_factorial(self):
-        self.assertEqual(ScientificEngine.factorial(0), 1)
-        self.assertEqual(ScientificEngine.factorial(5), 120)
-        self.assertEqual(ScientificEngine.factorial(6), 720)
+    def test_power_and_edge_cases(self):
+        self.assertEqual(ScientificEngine.power(2, 4), 16.0)
+        self.assertEqual(ScientificEngine.power(5, 0), 1.0)
+        self.assertEqual(ScientificEngine.power(-2, 3), -8.0)
+        # Negative base with fractional exponent
         with self.assertRaises(ValueError):
-            ScientificEngine.factorial(-1)
+            ScientificEngine.power(-4, 0.5)
+        # 0 to negative exponent
+        with self.assertRaises(ZeroDivisionError):
+            ScientificEngine.power(0, -2)
+        # Overflow
+        with self.assertRaises(OverflowError):
+            ScientificEngine.power(10, 500)
 
-    def test_reciprocal_and_percentage(self):
-        self.assertEqual(ScientificEngine.reciprocal(4), 0.25)
+    def test_percentage(self):
         self.assertEqual(ScientificEngine.percentage(50), 0.5)
+        self.assertEqual(ScientificEngine.percentage(100), 1.0)
+        self.assertEqual(ScientificEngine.percentage(0), 0.0)
+
+    def test_reciprocal(self):
+        self.assertEqual(ScientificEngine.reciprocal(4), 0.25)
+        self.assertEqual(ScientificEngine.reciprocal(-2), -0.5)
         with self.assertRaises(ZeroDivisionError):
             ScientificEngine.reciprocal(0)
+
+    def test_factorial_valid_and_invalid(self):
+        self.assertEqual(ScientificEngine.factorial(0), 1)
+        self.assertEqual(ScientificEngine.factorial(1), 1)
+        self.assertEqual(ScientificEngine.factorial(5), 120)
+        self.assertEqual(ScientificEngine.factorial(6), 720)
+        # Negative number
+        with self.assertRaises(ValueError) as ctx:
+            ScientificEngine.factorial(-3)
+        self.assertIn("non-negative", str(ctx.exception).lower())
+        # Decimals
+        with self.assertRaises(ValueError) as ctx:
+            ScientificEngine.factorial(4.5)
+        self.assertIn("integer", str(ctx.exception).lower())
+        # Overflow beyond 170!
+        with self.assertRaises(OverflowError):
+            ScientificEngine.factorial(171)
+
+    def test_absolute_value(self):
+        self.assertEqual(ScientificEngine.abs_val(-5), 5.0)
+        self.assertEqual(ScientificEngine.abs_val(5), 5.0)
+        self.assertEqual(ScientificEngine.abs_val(-3.14), 3.14)
+        self.assertEqual(ScientificEngine.abs_val(0), 0.0)
 
 
 class TestSafeMathEvaluator(unittest.TestCase):
@@ -82,6 +135,9 @@ class TestSafeMathEvaluator(unittest.TestCase):
         self.assertAlmostEqual(self.evaluator_deg.evaluate("cos(60) + sin(30)"), 1.0, places=5)
         self.assertEqual(self.evaluator_deg.evaluate("sqrt(25) + 3"), 8)
         self.assertEqual(self.evaluator_deg.evaluate("fact(4)"), 24)
+        self.assertEqual(self.evaluator_deg.evaluate("abs(-15)"), 15)
+        self.assertEqual(self.evaluator_deg.evaluate("sqr(6)"), 36)
+        self.assertEqual(self.evaluator_deg.evaluate("recip(4)"), 0.25)
 
     def test_security_disallowed_syntax(self):
         # Disallow arbitrary code execution attempts
@@ -131,6 +187,49 @@ class TestCalculatorEngine(unittest.TestCase):
         self.calc.append_number("86")
         self.assertEqual(self.calc.calculate(), "4")
 
+    def test_advanced_square_and_power(self):
+        self.calc.current_input = "6"
+        self.assertEqual(self.calc.apply_unary_operation("sqr"), "36")
+
+        self.calc.current_input = "3 ^ 3"
+        self.assertEqual(self.calc.calculate(), "27")
+
+    def test_advanced_sqrt_and_negative_handling(self):
+        self.calc.current_input = "64"
+        self.assertEqual(self.calc.apply_unary_operation("sqrt"), "8")
+
+        # Negative square root friendly error
+        self.calc.current_input = "-16"
+        res = self.calc.apply_unary_operation("sqrt")
+        self.assertIn("negative number", res.lower())
+
+    def test_advanced_reciprocal(self):
+        self.calc.current_input = "4"
+        self.assertEqual(self.calc.apply_unary_operation("recip"), "0.25")
+
+        self.calc.current_input = "0"
+        res = self.calc.apply_unary_operation("recip")
+        self.assertIn("division by zero", res.lower())
+
+    def test_advanced_absolute_value(self):
+        self.calc.current_input = "-42"
+        self.assertEqual(self.calc.apply_unary_operation("abs"), "42")
+
+        self.calc.current_input = "|-18| + 2"
+        self.assertEqual(self.calc.calculate(), "20")
+
+    def test_advanced_factorial_valid_and_invalid(self):
+        self.calc.current_input = "5"
+        self.assertEqual(self.calc.apply_unary_operation("fact"), "120")
+
+        self.calc.current_input = "-4"
+        res = self.calc.apply_unary_operation("fact")
+        self.assertIn("non-negative", res.lower())
+
+        self.calc.current_input = "3.2"
+        res = self.calc.apply_unary_operation("fact")
+        self.assertIn("integer", res.lower())
+
     def test_negative_numbers_and_sign_toggle(self):
         self.calc.current_input = "5"
         self.calc.toggle_sign()
@@ -138,11 +237,9 @@ class TestCalculatorEngine(unittest.TestCase):
         self.calc.toggle_sign()
         self.assertEqual(self.calc.current_input, "5")
 
-        # Negative in expression
         self.calc.current_input = "-5 + 3"
         self.assertEqual(self.calc.calculate(), "-2")
 
-        # Multiplying negative
         self.calc.current_input = "5 × -2"
         self.assertEqual(self.calc.calculate(), "-10")
 
@@ -154,15 +251,12 @@ class TestCalculatorEngine(unittest.TestCase):
         self.assertEqual(self.calc.calculate(), "30")
 
     def test_parentheses_and_precedence(self):
-        # Explicit parentheses
         self.calc.current_input = "(2 + 3) × 4"
         self.assertEqual(self.calc.calculate(), "20")
 
-        # Implicit multiplication 5(2+3)
         self.calc.current_input = "5(2 + 3)"
         self.assertEqual(self.calc.calculate(), "25")
 
-        # Auto-closing parentheses
         self.calc.current_input = "(10 + 5"
         self.assertEqual(self.calc.calculate(), "15")
 
