@@ -5,7 +5,7 @@ Scientific calculation module powered strictly by Python's built-in `math` libra
 
 This module provides pure mathematical functions isolated from any user interface.
 It validates all inputs, handles edge cases (e.g. negative square roots, invalid factorials,
-division by zero, overflow limits), and raises descriptive errors.
+division by zero, overflow limits, domain limits), and eliminates floating-point epsilon noise.
 """
 
 import math
@@ -40,59 +40,86 @@ class ScientificEngine:
         return angle_rad
 
     # -------------------------------------------------------------------------
-    # Trigonometric Functions
+    # Trigonometric Functions (sin, cos, tan)
     # -------------------------------------------------------------------------
     @classmethod
     def sin(cls, x: Number, mode: str = "DEG") -> float:
-        """Calculates sine of x in DEG or RAD mode."""
+        """
+        Calculates sine of x in DEG or RAD mode.
+        sin(30) in DEG returns 0.5; sin(pi/6) in RAD returns 0.5.
+        """
         rad = cls._to_radians(x, mode)
-        val = math.sin(rad)
-        return 0.0 if abs(val) < 1e-15 else val
+        val = round(math.sin(rad), 12)
+        return 0.0 if abs(val) < 1e-12 else val
 
     @classmethod
     def cos(cls, x: Number, mode: str = "DEG") -> float:
-        """Calculates cosine of x in DEG or RAD mode."""
+        """
+        Calculates cosine of x in DEG or RAD mode.
+        cos(60) in DEG returns 0.5; cos(0) returns 1.0.
+        """
         rad = cls._to_radians(x, mode)
-        val = math.cos(rad)
-        return 0.0 if abs(val) < 1e-15 else val
+        val = round(math.cos(rad), 12)
+        return 0.0 if abs(val) < 1e-12 else val
 
     @classmethod
     def tan(cls, x: Number, mode: str = "DEG") -> float:
-        """Calculates tangent of x in DEG or RAD mode."""
+        """
+        Calculates tangent of x in DEG or RAD mode.
+        Safely detects undefined values (e.g. at 90°, 270°) and raises ZeroDivisionError.
+        """
         rad = cls._to_radians(x, mode)
-        c = math.cos(rad)
-        if abs(c) < 1e-15:
+        c = round(math.cos(rad), 12)
+        if abs(c) < 1e-12:
             raise ZeroDivisionError("Tangent undefined (division by zero at 90° + k*180°)")
-        val = math.tan(rad)
-        return 0.0 if abs(val) < 1e-15 else val
+        val = round(math.tan(rad), 12)
+        return 0.0 if abs(val) < 1e-12 else val
 
+    # -------------------------------------------------------------------------
+    # Inverse Trigonometric Functions (asin, acos, atan)
+    # -------------------------------------------------------------------------
     @classmethod
     def asin(cls, x: Number, mode: str = "DEG") -> float:
-        """Calculates arcsine (inverse sine) in DEG or RAD."""
+        """
+        Calculates arcsine (inverse sine) in DEG or RAD.
+        Domain: [-1, 1]. Returns error if outside domain.
+        """
         val = float(x)
         if not -1.0 <= val <= 1.0:
             raise ValueError("Arcsin requires input between -1 and 1")
-        return cls._from_radians(math.asin(val), mode)
+        res = cls._from_radians(math.asin(val), mode)
+        rounded = round(res, 12)
+        return 0.0 if abs(rounded) < 1e-12 else rounded
 
     @classmethod
     def acos(cls, x: Number, mode: str = "DEG") -> float:
-        """Calculates arccosine (inverse cosine) in DEG or RAD."""
+        """
+        Calculates arccosine (inverse cosine) in DEG or RAD.
+        Domain: [-1, 1]. Returns error if outside domain.
+        """
         val = float(x)
         if not -1.0 <= val <= 1.0:
             raise ValueError("Arccos requires input between -1 and 1")
-        return cls._from_radians(math.acos(val), mode)
+        res = cls._from_radians(math.acos(val), mode)
+        rounded = round(res, 12)
+        return 0.0 if abs(rounded) < 1e-12 else rounded
 
     @classmethod
     def atan(cls, x: Number, mode: str = "DEG") -> float:
-        """Calculates arctangent (inverse tangent) in DEG or RAD."""
-        return cls._from_radians(math.atan(float(x)), mode)
+        """
+        Calculates arctangent (inverse tangent) in DEG or RAD.
+        Domain: all real numbers.
+        """
+        res = cls._from_radians(math.atan(float(x)), mode)
+        rounded = round(res, 12)
+        return 0.0 if abs(rounded) < 1e-12 else rounded
 
     # -------------------------------------------------------------------------
     # Hyperbolic Functions
     # -------------------------------------------------------------------------
     @staticmethod
     def sinh(x: Number) -> float:
-        """Hyperbolic sine."""
+        """Hyperbolic sine with overflow protection."""
         try:
             return math.sinh(float(x))
         except OverflowError:
@@ -100,7 +127,7 @@ class ScientificEngine:
 
     @staticmethod
     def cosh(x: Number) -> float:
-        """Hyperbolic cosine."""
+        """Hyperbolic cosine with overflow protection."""
         try:
             return math.cosh(float(x))
         except OverflowError:
@@ -116,15 +143,21 @@ class ScientificEngine:
     # -------------------------------------------------------------------------
     @staticmethod
     def ln(x: Number) -> float:
-        """Natural logarithm (base e)."""
+        """
+        Natural logarithm (base e).
+        Validates domain x > 0.
+        """
         val = float(x)
         if val <= 0:
-            raise ValueError("Logarithm requires value > 0")
+            raise ValueError("Natural log requires value > 0")
         return math.log(val)
 
     @staticmethod
     def log10(x: Number) -> float:
-        """Logarithm base 10."""
+        """
+        Common logarithm (base 10).
+        Validates domain x > 0.
+        """
         val = float(x)
         if val <= 0:
             raise ValueError("Logarithm requires value > 0")
@@ -132,7 +165,7 @@ class ScientificEngine:
 
     @staticmethod
     def log2(x: Number) -> float:
-        """Logarithm base 2."""
+        """Logarithm base 2 with domain validation."""
         val = float(x)
         if val <= 0:
             raise ValueError("Logarithm requires value > 0")
@@ -140,7 +173,9 @@ class ScientificEngine:
 
     @staticmethod
     def exp(x: Number) -> float:
-        """Calculates e^x with overflow protection."""
+        """
+        Exponential function e^x with overflow protection.
+        """
         try:
             return math.exp(float(x))
         except OverflowError:
@@ -155,13 +190,11 @@ class ScientificEngine:
             raise OverflowError("Result too large")
 
     # -------------------------------------------------------------------------
-    # Advanced Mathematical Operations (Square, Sqrt, Power, Reciprocal, etc.)
+    # Advanced Mathematical Operations
     # -------------------------------------------------------------------------
     @staticmethod
     def square(x: Number) -> float:
-        """
-        Calculates x² with input validation and overflow prevention.
-        """
+        """Calculates x² with overflow prevention."""
         try:
             val = float(x)
             res = val ** 2
@@ -187,7 +220,7 @@ class ScientificEngine:
     def sqrt(x: Number) -> float:
         """
         Calculates square root √x.
-        Properly handles and rejects negative numbers with friendly error.
+        Safely validates and rejects negative numbers with friendly error.
         """
         val = float(x)
         if val < 0:
@@ -204,7 +237,7 @@ class ScientificEngine:
     def power(base: Number, exponent: Number) -> float:
         """
         Calculates base^exponent (xʸ).
-        Validates negative bases with fractional exponents, division by zero, and overflow.
+        Validates negative base with fractional exponents, division by zero, and overflow.
         """
         try:
             b = float(base)

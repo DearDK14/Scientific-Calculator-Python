@@ -387,6 +387,9 @@ class CalculatorEngine:
             elif op == "abs":
                 res = ScientificEngine.abs_val(val)
                 label = f"|{self._format_number(val)}|"
+            elif op == "exp":
+                res = ScientificEngine.exp(val)
+                label = f"exp({self._format_number(val)})"
             else:
                 raise ValueError("Invalid operation")
 
@@ -516,14 +519,14 @@ class CalculatorEngine:
         s = re.sub(r"√\s*(\d+(?:\.\d+)?)", r"sqrt(\1)", s)
 
         # Implicit multiplication:
-        # 1. Number before '(': '5(2+3)' -> '5 * (2+3)'
-        s = re.sub(r"(\d+(?:\.\d+)?)\s*\(", r"\1 * (", s)
+        # 1. Number before '(': '5(2+3)' -> '5 * (2+3)' (using \b to avoid matching log10)
+        s = re.sub(r"\b(\d+(?:\.\d+)?)\s*\(", r"\1 * (", s)
         # 2. ')' before number: '(2+3)5' -> '(2+3) * 5'
         s = re.sub(r"\)\s*(\d+(?:\.\d+)?)", r") * \1", s)
         # 3. ')' before '(': '(2+3)(4+1)' -> '(2+3) * (4+1)'
         s = re.sub(r"\)\s*\(", r") * (", s)
         # 4. Number before constant: '2pi' -> '2 * pi', '3e' -> '3 * e'
-        s = re.sub(r"(\d+(?:\.\d+)?)\s*(pi|e)\b", r"\1 * \2", s)
+        s = re.sub(r"\b(\d+(?:\.\d+)?)\s*(pi|e)\b", r"\1 * \2", s)
         # 5. Constant before '(': 'pi(2)' -> 'pi * (2)'
         s = re.sub(r"\b(pi|e)\s*\(", r"\1 * (", s)
         # 6. ')' before constant: '(2)pi' -> '(2) * pi'

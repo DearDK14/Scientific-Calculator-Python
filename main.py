@@ -237,10 +237,10 @@ class ScientificCalculatorApp(ctk.CTk):
             [("e", lambda: self._on_constant("e")),
              ("!", lambda: self._on_unary("fact")),
              ("%", lambda: self._on_unary("percent"))],
-            # Row 5 (Reciprocal, Absolute Value, Cube)
-            [("1/x", lambda: self._on_unary("recip")),
-             ("|x|", lambda: self._on_unary("abs")),
-             ("x³", lambda: self._on_unary("cube"))],
+            # Row 5 (Exponential, Reciprocal, Absolute Value)
+            [("exp", self._on_exp),
+             ("1/x", lambda: self._on_unary("recip")),
+             ("|x|", lambda: self._on_unary("abs"))],
         ]
 
         for r, row in enumerate(sci_buttons):
@@ -401,6 +401,16 @@ class ScientificCalculatorApp(ctk.CTk):
             self._update_display()
         except ValueError:
             self._on_func("sqrt")
+
+    def _on_exp(self) -> None:
+        """Handles exponential (e^x): computes immediately on single number, or inserts exp(."""
+        val_str = self.engine.current_input.strip()
+        try:
+            float(val_str)
+            self.engine.apply_unary_operation("exp")
+            self._update_display()
+        except ValueError:
+            self._on_func("exp")
 
     def _on_toggle_sign(self) -> None:
         self.engine.toggle_sign()

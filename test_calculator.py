@@ -325,5 +325,143 @@ class TestCalculatorEngine(unittest.TestCase):
         self.assertEqual(entries[0].result, "56")
 
 
+class TestScientificFunctionsAndModes(unittest.TestCase):
+    """
+    Dedicated test suite for user scientific requirements:
+    - Default mode DEG
+    - DEG/RAD switching
+    - sin(30) in DEG returns 0.5
+    - sin(pi/6) in RAD returns approx 0.5
+    - Trigonometric (sin, cos, tan)
+    - Inverse trigonometric (asin, acos, atan)
+    - Logarithmic (log10, ln)
+    - Other: sqrt, power, factorial, absolute value, exp, pi, e
+    - Safe domain error handling
+    """
+
+    def setUp(self):
+        self.calc = CalculatorEngine()
+
+    def test_default_mode_is_deg(self):
+        self.assertEqual(self.calc.angle_mode, "DEG")
+
+    def test_switch_between_deg_and_rad(self):
+        self.calc.set_angle_mode("RAD")
+        self.assertEqual(self.calc.angle_mode, "RAD")
+        self.calc.toggle_angle_mode()
+        self.assertEqual(self.calc.angle_mode, "DEG")
+        self.calc.toggle_angle_mode()
+        self.assertEqual(self.calc.angle_mode, "RAD")
+
+    def test_sin_30_in_deg_returns_0_5(self):
+        self.calc.set_angle_mode("DEG")
+        self.calc.current_input = "sin(30)"
+        res = self.calc.calculate()
+        self.assertEqual(res, "0.5")
+
+    def test_sin_pi_over_6_in_rad_returns_0_5(self):
+        self.calc.set_angle_mode("RAD")
+        self.calc.current_input = "sin(pi / 6)"
+        res = self.calc.calculate()
+        self.assertEqual(res, "0.5")
+
+    def test_trigonometric_cos_and_tan(self):
+        self.calc.set_angle_mode("DEG")
+        self.calc.current_input = "cos(60)"
+        self.assertEqual(self.calc.calculate(), "0.5")
+
+        self.calc.current_input = "tan(45)"
+        self.assertEqual(self.calc.calculate(), "1")
+
+    def test_inverse_trigonometric(self):
+        self.calc.set_angle_mode("DEG")
+        self.calc.current_input = "asin(0.5)"
+        self.assertEqual(self.calc.calculate(), "30")
+
+        self.calc.current_input = "acos(0.5)"
+        self.assertEqual(self.calc.calculate(), "60")
+
+        self.calc.current_input = "atan(1)"
+        self.assertEqual(self.calc.calculate(), "45")
+
+    def test_logarithmic_log10_and_ln(self):
+        self.calc.current_input = "log10(100)"
+        self.assertEqual(self.calc.calculate(), "2")
+
+        self.calc.current_input = "log(1000)"
+        self.assertEqual(self.calc.calculate(), "3")
+
+        self.calc.current_input = "ln(e)"
+        self.assertEqual(self.calc.calculate(), "1")
+
+    def test_other_functions_and_constants(self):
+        # Square root
+        self.calc.current_input = "sqrt(144)"
+        self.assertEqual(self.calc.calculate(), "12")
+
+        # Power
+        self.calc.current_input = "2 ^ 6"
+        self.assertEqual(self.calc.calculate(), "64")
+
+        # Factorial
+        self.calc.current_input = "5!"
+        self.assertEqual(self.calc.calculate(), "120")
+
+        # Absolute value
+        self.calc.current_input = "abs(-25)"
+        self.assertEqual(self.calc.calculate(), "25")
+
+        # Exponential e^x
+        self.calc.current_input = "exp(0)"
+        self.assertEqual(self.calc.calculate(), "1")
+
+        # Constant pi
+        self.calc.current_input = "pi"
+        res_pi = float(self.calc.calculate())
+        self.assertAlmostEqual(res_pi, math.pi, places=8)
+
+        # Constant e
+        self.calc.current_input = "e"
+        res_e = float(self.calc.calculate())
+        self.assertAlmostEqual(res_e, math.e, places=8)
+
+    def test_domain_errors_handled_safely(self):
+        # Asin domain error (|x| > 1)
+        self.calc.current_input = "asin(2)"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+        self.assertIn("Arcsin", res)
+
+        # Acos domain error (|x| > 1)
+        self.calc.current_input = "acos(-5)"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+        self.assertIn("Arccos", res)
+
+        # Tan domain error at 90 deg
+        self.calc.set_angle_mode("DEG")
+        self.calc.current_input = "tan(90)"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+
+        # Log domain error (x <= 0)
+        self.calc.current_input = "log10(-10)"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+        self.assertIn("Logarithm", res)
+
+        # Ln domain error (x <= 0)
+        self.calc.current_input = "ln(0)"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+        self.assertIn("log", res.lower())
+
+        # Sqrt domain error (x < 0)
+        self.calc.current_input = "sqrt(-25)"
+        res = self.calc.calculate()
+        self.assertIn("Error", res)
+        self.assertIn("negative number", res.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
