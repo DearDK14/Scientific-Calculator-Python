@@ -6,79 +6,79 @@ for the CustomTkinter Scientific Calculator.
 """
 
 import customtkinter as ctk
-from typing import Dict, Any, Tuple
+from typing import Tuple
 
 
 class Theme:
     """
-    Defines color palettes for dark and light appearance modes.
+    Defines modern, professional color palettes for dark and light appearance modes.
     Colors are provided as tuples: (dark_mode_color, light_mode_color).
     """
 
-    # Window & container backgrounds
-    WINDOW_BG: Tuple[str, str] = ("#18191E", "#F3F4F8")
-    DISPLAY_BG: Tuple[str, str] = ("#20222A", "#FFFFFF")
-    PANEL_BG: Tuple[str, str] = ("#1E2028", "#E9EBF2")
-    BORDER_COLOR: Tuple[str, str] = ("#2D313D", "#DCE0EB")
+    # Window & container backgrounds (Deep modern obsidian/slate)
+    WINDOW_BG: Tuple[str, str] = ("#0F172A", "#F1F5F9")
+    DISPLAY_BG: Tuple[str, str] = ("#1E293B", "#FFFFFF")
+    PANEL_BG: Tuple[str, str] = ("#1E293B", "#E2E8F0")
+    BORDER_COLOR: Tuple[str, str] = ("#334155", "#CBD5E1")
 
     # Text colors
-    TEXT_PRIMARY: Tuple[str, str] = ("#FFFFFF", "#1A1C23")
-    TEXT_SECONDARY: Tuple[str, str] = ("#8E95A5", "#6B7280")
-    TEXT_ACCENT: Tuple[str, str] = ("#4DA3FF", "#1A73E8")
+    TEXT_PRIMARY: Tuple[str, str] = ("#F8FAFC", "#0F172A")
+    TEXT_SECONDARY: Tuple[str, str] = ("#94A3B8", "#64748B")
+    TEXT_ACCENT: Tuple[str, str] = ("#38BDF8", "#0284C7")
 
-    # Button: Numbers (0-9, .)
+    # 1. Number Buttons (0-9, .)
     BTN_NUMBER = {
-        "fg_color": ("#2B2D37", "#FFFFFF"),
-        "hover_color": ("#383B47", "#F0F2F6"),
-        "text_color": ("#FFFFFF", "#1A1C23"),
-        "corner_radius": 8,
+        "fg_color": ("#334155", "#FFFFFF"),
+        "hover_color": ("#475569", "#F1F5F9"),
+        "text_color": ("#F8FAFC", "#0F172A"),
+        "corner_radius": 12,
     }
 
-    # Button: Basic Arithmetic Operators (+, -, ×, ÷)
+    # 2. Arithmetic Operators (÷, ×, −, +)
     BTN_OPERATOR = {
-        "fg_color": ("#2E3A59", "#E8F0FE"),
-        "hover_color": ("#3B4B73", "#D2E3FC"),
-        "text_color": ("#7CB1FF", "#1967D2"),
-        "corner_radius": 8,
-    }
-
-    # Button: Equals (=)
-    BTN_EQUALS = {
-        "fg_color": ("#1A73E8", "#1A73E8"),
-        "hover_color": ("#1558B0", "#1558B0"),
+        "fg_color": ("#2563EB", "#2563EB"),
+        "hover_color": ("#1D4ED8", "#1D4ED8"),
         "text_color": ("#FFFFFF", "#FFFFFF"),
-        "corner_radius": 8,
+        "corner_radius": 12,
     }
 
-    # Button: Scientific Functions (sin, cos, tan, log, etc.)
+    # 3. Scientific Functions (sin, cos, tan, log, ln, √, powers, constants, etc.)
     BTN_SCIENTIFIC = {
-        "fg_color": ("#232530", "#EEF1F7"),
-        "hover_color": ("#2F3240", "#DFE4EE"),
-        "text_color": ("#A5B4CB", "#3C4043"),
-        "corner_radius": 8,
+        "fg_color": ("#1E293B", "#E2E8F0"),
+        "hover_color": ("#334155", "#CBD5E1"),
+        "text_color": ("#38BDF8", "#0284C7"),
+        "corner_radius": 12,
     }
 
-    # Button: Clear / Action (AC, C, ⌫)
+    # 4. Equals Button (=)
+    BTN_EQUALS = {
+        "fg_color": ("#10B981", "#10B981"),
+        "hover_color": ("#059669", "#059669"),
+        "text_color": ("#FFFFFF", "#FFFFFF"),
+        "corner_radius": 12,
+    }
+
+    # 5. Clear / Delete Buttons (C, DEL)
     BTN_ACTION = {
-        "fg_color": ("#3D2529", "#FCE8E6"),
-        "hover_color": ("#4E2E34", "#FAD2CF"),
-        "text_color": ("#F28B82", "#C5221F"),
-        "corner_radius": 8,
+        "fg_color": ("#EF4444", "#EF4444"),
+        "hover_color": ("#DC2626", "#DC2626"),
+        "text_color": ("#FFFFFF", "#FFFFFF"),
+        "corner_radius": 12,
     }
 
-    # Button: Memory (MC, MR, M+, M-, MS)
-    BTN_MEMORY = {
-        "fg_color": "transparent",
-        "hover_color": ("#2B2D37", "#E4E7ED"),
-        "text_color": ("#8E95A5", "#5F6368"),
-        "corner_radius": 6,
+    # 6. Bracket Buttons ((, ))
+    BTN_BRACKET = {
+        "fg_color": ("#1E293B", "#E2E8F0"),
+        "hover_color": ("#334155", "#CBD5E1"),
+        "text_color": ("#F8FAFC", "#0F172A"),
+        "corner_radius": 12,
     }
 
-    # Button: Header / Tool icon buttons
+    # 7. Header Tool / Toggle Buttons
     BTN_TOOL = {
-        "fg_color": ("#262832", "#E8EAF0"),
-        "hover_color": ("#333744", "#DADDE6"),
-        "text_color": ("#A5B4CB", "#44474E"),
+        "fg_color": ("#1E293B", "#E2E8F0"),
+        "hover_color": ("#334155", "#CBD5E1"),
+        "text_color": ("#94A3B8", "#475569"),
         "corner_radius": 8,
     }
 
@@ -90,35 +90,31 @@ class Fonts:
 
     @classmethod
     def display_result(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=32, weight="bold")
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=34, weight="bold")
 
     @classmethod
     def display_formula(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=13, weight="normal")
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=15, weight="normal")
 
     @classmethod
-    def button_main(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=16, weight="bold")
+    def button_number(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=18, weight="bold")
+
+    @classmethod
+    def button_operator(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=20, weight="bold")
 
     @classmethod
     def button_scientific(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=12, weight="normal")
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=13, weight="bold")
 
     @classmethod
-    def button_memory(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=11, weight="bold")
+    def button_bottom(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=16, weight="bold")
 
     @classmethod
     def label_badge(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=10, weight="bold")
-
-    @classmethod
-    def history_title(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=14, weight="bold")
-
-    @classmethod
-    def history_item(cls) -> ctk.CTkFont:
-        return ctk.CTkFont(family=cls.FONT_FAMILY, size=12, weight="normal")
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=11, weight="bold")
 
 
 class ThemeManager:
