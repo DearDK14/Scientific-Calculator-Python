@@ -83,6 +83,7 @@ class SafeMathEvaluator:
             "log": ScientificEngine.log10,
             "log10": ScientificEngine.log10,
             "log2": ScientificEngine.log2,
+            "log_base": ScientificEngine.log_base,
             "exp": ScientificEngine.exp,
             "pow10": ScientificEngine.pow10,
             "sqrt": ScientificEngine.sqrt,
@@ -139,10 +140,12 @@ class SafeMathEvaluator:
                 raise ValueError(f"Unknown function '{func_name}'")
 
             args = [self._evaluate_node(arg) for arg in node.args]
-            if len(args) != 1:
+            if func_name in ("log", "log_base") and len(args) == 2:
+                return float(ScientificEngine.log_base(args[0], args[1]))
+            elif len(args) == 1:
+                return float(functions[func_name](args[0]))
+            else:
                 raise ValueError(f"Function '{func_name}' expects 1 argument")
-
-            return float(functions[func_name](args[0]))
 
         raise ValueError("Invalid expression")
 
@@ -356,6 +359,20 @@ class CalculatorEngine:
                 self.current_input += symbol
         return self.current_input
 
+    def append_exp(self) -> str:
+        """Inserts scientific notation 'e' into current input."""
+        if self.is_error or self.is_new_calculation:
+            self.current_input = "1e"
+            self.is_new_calculation = False
+            self._is_error = False
+        else:
+            stripped = self.current_input.rstrip()
+            if stripped and stripped[-1] in "+-−×÷/*^(":
+                self.current_input = f"{stripped} 1e"
+            elif stripped and not stripped.endswith("e"):
+                self.current_input = f"{stripped}e"
+        return self.current_input
+
     def apply_function(self, func_name: str) -> str:
         """
         Inserts a function call like sin(, cos(, sqrt(, ln(, etc.
@@ -411,6 +428,9 @@ class CalculatorEngine:
             elif op == "sqrt":
                 res = ScientificEngine.sqrt(val)
                 label = f"√({self._format_number(val)})"
+            elif op == "cbrt":
+                res = ScientificEngine.cbrt(val)
+                label = f"∛({self._format_number(val)})"
             elif op == "cube":
                 res = ScientificEngine.cube(val)
                 label = f"cube({self._format_number(val)})"
@@ -572,8 +592,8 @@ class CalculatorEngine:
         s = re.sub(r"\)\s*(\d+(?:\.\d+)?)", r") * \1", s)
         # 3. ')' before '(': '(2+3)(4+1)' -> '(2+3) * (4+1)'
         s = re.sub(r"\)\s*\(", r") * (", s)
-        # 4. Number before constant: '2pi' -> '2 * pi', '3e' -> '3 * e'
-        s = re.sub(r"\b(\d+(?:\.\d+)?)\s*(pi|e)\b", r"\1 * \2", s)
+        # 4. Number before constant: '2pi' -> '2 * pi', '3e' -> '3 * e' (protecting scientific notation 1e5, 1e+5)
+        s = re.sub(r"\b(\d+(?:\.\d+)?)\s*(pi|e(?![+-]?\d))\b", r"\1 * \2", s)
         # 5. Constant before '(': 'pi(2)' -> 'pi * (2)'
         s = re.sub(r"\b(pi|e)\s*\(", r"\1 * (", s)
         # 6. ')' before constant: '(2)pi' -> '(2) * pi'

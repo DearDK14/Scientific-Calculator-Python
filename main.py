@@ -35,6 +35,7 @@ from sidebar import SidebarNavigation
 from theme import Theme, Fonts, ThemeManager, CTkToolTip
 from views import (
     BaseModeView,
+    GraphingView,
     ScientificView,
     StandardView,
     PlaceholderView,
@@ -259,6 +260,8 @@ class ModernCalculatorApp(ctk.CTk):
             return StandardView(self.content_container, app=self)
         elif mode_id == "scientific":
             return ScientificView(self.content_container, app=self)
+        elif mode_id == "graphing":
+            return GraphingView(self.content_container, app=self)
         elif mode_id == "settings":
             return SettingsView(self.content_container, app=self)
         else:

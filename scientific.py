@@ -172,6 +172,20 @@ class ScientificEngine:
         return math.log2(val)
 
     @staticmethod
+    def log_base(x: Number, base: Number) -> float:
+        """
+        Logarithm with custom base: log_b(x).
+        Validates domain x > 0, base > 0, base != 1.
+        """
+        val = float(x)
+        b = float(base)
+        if val <= 0:
+            raise ValueError("Math domain error: Logarithm requires value > 0")
+        if b <= 0 or b == 1.0:
+            raise ValueError("Math domain error: Base must be positive and not equal to 1")
+        return math.log(val, b)
+
+    @staticmethod
     def exp(x: Number) -> float:
         """
         Exponential function e^x with overflow protection.

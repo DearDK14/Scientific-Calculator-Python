@@ -180,28 +180,34 @@ class ScientificView(BaseModeView):
         self.sci_frame = ctk.CTkFrame(parent, fg_color="transparent")
         self.sci_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 8))
 
-        for c in range(3):
+        for c in range(4):
             self.sci_frame.grid_columnconfigure(c, weight=1)
 
         sci_buttons = [
             [("sin", lambda: self._on_func("sin"), "Sine: sin(x) in DEG or RAD"),
              ("cos", lambda: self._on_func("cos"), "Cosine: cos(x) in DEG or RAD"),
-             ("tan", lambda: self._on_func("tan"), "Tangent: tan(x) in DEG or RAD")],
+             ("tan", lambda: self._on_func("tan"), "Tangent: tan(x) in DEG or RAD"),
+             ("sinh", lambda: self._on_func("sinh"), "Hyperbolic Sine: sinh(x)")],
             [("asin", lambda: self._on_func("asin"), "Inverse Sine: arcsin(x), -1 ≤ x ≤ 1"),
              ("acos", lambda: self._on_func("acos"), "Inverse Cosine: arccos(x), -1 ≤ x ≤ 1"),
-             ("atan", lambda: self._on_func("atan"), "Inverse Tangent: arctan(x)")],
+             ("atan", lambda: self._on_func("atan"), "Inverse Tangent: arctan(x)"),
+             ("cosh", lambda: self._on_func("cosh"), "Hyperbolic Cosine: cosh(x)")],
             [("log", lambda: self._on_func("log10"), "Common Logarithm: log10(x), x > 0"),
              ("ln", lambda: self._on_func("ln"), "Natural Logarithm: ln(x), x > 0"),
-             ("√", self._on_sqrt, "Square Root: √(x), x ≥ 0")],
-            [("x²", lambda: self._on_unary("sqr"), "Square: x² (raise to power 2)"),
-             ("xʸ", lambda: self._on_operator("^"), "Power: x^y (x raised to y)"),
-             ("π", lambda: self._on_constant("pi"), "Pi constant (≈ 3.14159)")],
-            [("e", lambda: self._on_constant("e"), "Euler's constant (≈ 2.71828)"),
-             ("!", lambda: self._on_unary("fact"), "Factorial: x! (non-negative integer)"),
-             ("%", lambda: self._on_unary("percent"), "Percentage: x / 100")],
-            [("exp", self._on_exp, "Exponential: e^x"),
+             ("logᵧ", lambda: self._on_func("log"), "Custom Base Log: log(x, base)"),
+             ("tanh", lambda: self._on_func("tanh"), "Hyperbolic Tangent: tanh(x)")],
+            [("√", self._on_sqrt, "Square Root: √(x), x ≥ 0"),
+             ("∛", self._on_cbrt, "Cube Root: ∛(x)"),
+             ("x²", lambda: self._on_unary("sqr"), "Square: x² (raise to power 2)"),
+             ("xʸ", lambda: self._on_operator("^"), "Power: x^y (x raised to y)")],
+            [("π", lambda: self._on_constant("pi"), "Pi constant (≈ 3.14159)"),
+             ("e", lambda: self._on_constant("e"), "Euler's constant (≈ 2.71828)"),
              ("1/x", lambda: self._on_unary("recip"), "Reciprocal: 1 / x"),
              ("|x|", lambda: self._on_unary("abs"), "Absolute Value: |x|")],
+            [("exp", self._on_exp, "Exponential: e^x"),
+             ("!", lambda: self._on_unary("fact"), "Factorial: x! (non-negative integer)"),
+             ("%", lambda: self._on_unary("percent"), "Percentage: x / 100"),
+             ("EXP", self._on_exp_notation, "Scientific Notation: e (e.g. 5e3 = 5000)")],
         ]
 
         for r, row in enumerate(sci_buttons):
@@ -375,6 +381,19 @@ class ScientificView(BaseModeView):
             self._update_display()
         except ValueError:
             self._on_func("exp")
+
+    def _on_cbrt(self) -> None:
+        val_str = self.engine.current_input.strip()
+        try:
+            float(val_str)
+            self.engine.apply_unary_operation("cbrt")
+            self._update_display()
+        except ValueError:
+            self._on_func("cbrt")
+
+    def _on_exp_notation(self) -> None:
+        self.engine.append_exp()
+        self._update_display()
 
     def _on_toggle_sign(self) -> None:
         self.engine.toggle_sign()

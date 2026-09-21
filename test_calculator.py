@@ -47,6 +47,28 @@ class TestScientificEngine(unittest.TestCase):
         with self.assertRaises(ValueError):
             ScientificEngine.log10(-5)
 
+    def test_hyperbolic_functions(self):
+        self.assertAlmostEqual(ScientificEngine.sinh(0), 0.0, places=5)
+        self.assertAlmostEqual(ScientificEngine.cosh(0), 1.0, places=5)
+        self.assertAlmostEqual(ScientificEngine.tanh(0), 0.0, places=5)
+        self.assertAlmostEqual(ScientificEngine.sinh(1), math.sinh(1), places=5)
+
+    def test_custom_base_logarithm(self):
+        self.assertAlmostEqual(ScientificEngine.log_base(8, 2), 3.0, places=5)
+        self.assertAlmostEqual(ScientificEngine.log_base(1000, 10), 3.0, places=5)
+        self.assertAlmostEqual(ScientificEngine.log_base(81, 3), 4.0, places=5)
+        with self.assertRaises(ValueError):
+            ScientificEngine.log_base(-8, 2)
+        with self.assertRaises(ValueError):
+            ScientificEngine.log_base(8, -2)
+        with self.assertRaises(ValueError):
+            ScientificEngine.log_base(8, 1)
+
+    def test_cube_root(self):
+        self.assertAlmostEqual(ScientificEngine.cbrt(27), 3.0, places=5)
+        self.assertAlmostEqual(ScientificEngine.cbrt(-8), -2.0, places=5)
+        self.assertEqual(ScientificEngine.cbrt(0), 0.0)
+
     # -------------------------------------------------------------------------
     # Advanced Mathematical Operations Tests
     # -------------------------------------------------------------------------
@@ -621,6 +643,22 @@ class TestCodeReviewAndEdgeCases(unittest.TestCase):
         # ln(e) = 1
         self.calc.current_input = "ln(e)"
         self.assertEqual(self.calc.calculate(), "1")
+
+        # log(8, 2) custom base = 3
+        self.calc.current_input = "log(8, 2)"
+        self.assertEqual(self.calc.calculate(), "3")
+
+        # cosh(0) = 1
+        self.calc.current_input = "cosh(0)"
+        self.assertEqual(self.calc.calculate(), "1")
+
+        # cbrt unary
+        self.calc.current_input = "27"
+        self.assertEqual(self.calc.apply_unary_operation("cbrt"), "3")
+
+        # scientific notation: 2e3 + 500 = 2500
+        self.calc.current_input = "2e3 + 500"
+        self.assertEqual(self.calc.calculate(), "2500")
 
     def test_edge_cases_checklist(self):
         # 10/0 -> "Cannot divide by zero"
