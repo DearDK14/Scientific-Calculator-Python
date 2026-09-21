@@ -170,11 +170,25 @@ class CalculatorEngine:
         self.angle_mode: str = "DEG"  # 'DEG' or 'RAD'
         self.memory_value: float = 0.0
         self.has_memory: bool = False
+        self._is_error: bool = False
 
         # Current calculation states
         self.current_input: str = "0"
         self.previous_expression: str = ""
         self.is_new_calculation: bool = True
+
+    @property
+    def is_error(self) -> bool:
+        """Returns True if calculator is currently displaying an error message."""
+        return (
+            self._is_error
+            or "Error" in self.current_input
+            or "error" in self.current_input.lower()
+            or "Cannot divide" in self.current_input
+            or "Invalid expression" in self.current_input
+            or "Math domain" in self.current_input
+            or "Overflow" in self.current_input
+        )
 
     # -------------------------------------------------------------------------
     # Angle Mode (DEG / RAD)
@@ -201,56 +215,68 @@ class CalculatorEngine:
         """MR: Recalls stored memory value into current input."""
         if self.has_memory:
             self.current_input = self._format_number(self.memory_value)
-            self.is_new_calculation = False
+            self.is_new_calculation = True
+            self._is_error = False
         return self.current_input
 
-    def memory_store(self) -> None:
-        """MS: Stores current input into memory."""
+    def memory_store(self) -> bool:
+        """MS: Stores current value or evaluated expression into memory."""
+        if self.is_error:
+            return False
         try:
-            val = float(self.current_input)
+            val = self.evaluate_expression(self.current_input)
             self.memory_value = val
             self.has_memory = True
             self.is_new_calculation = True
-        except ValueError:
-            pass
+            return True
+        except Exception:
+            return False
 
-    def memory_add(self) -> None:
-        """M+: Adds current input to memory."""
+    def memory_add(self) -> bool:
+        """M+: Adds current value or evaluated expression to memory."""
+        if self.is_error:
+            return False
         try:
-            val = float(self.current_input)
-            self.memory_value += val
+            val = self.evaluate_expression(self.current_input)
+            self.memory_value = (self.memory_value if self.has_memory else 0.0) + val
             self.has_memory = True
             self.is_new_calculation = True
-        except ValueError:
-            pass
+            return True
+        except Exception:
+            return False
 
-    def memory_subtract(self) -> None:
-        """M-: Subtracts current input from memory."""
+    def memory_subtract(self) -> bool:
+        """M-: Subtracts current value or evaluated expression from memory."""
+        if self.is_error:
+            return False
         try:
-            val = float(self.current_input)
-            self.memory_value -= val
+            val = self.evaluate_expression(self.current_input)
+            self.memory_value = (self.memory_value if self.has_memory else 0.0) - val
             self.has_memory = True
             self.is_new_calculation = True
-        except ValueError:
-            pass
+            return True
+        except Exception:
+            return False
 
     # -------------------------------------------------------------------------
     # Input Manipulation
     # -------------------------------------------------------------------------
     def append_number(self, num_str: str) -> str:
         """Appends a digit (0-9) to the current input string."""
-        if self.is_new_calculation or self.current_input == "0" or "Error" in self.current_input:
+        if self.is_error or self.is_new_calculation or self.current_input == "0":
             self.current_input = num_str
             self.is_new_calculation = False
+            self._is_error = False
         else:
             self.current_input += num_str
         return self.current_input
 
     def append_decimal(self) -> str:
         """Appends a decimal point, ensuring no duplicate dots in the current token."""
-        if self.is_new_calculation or "Error" in self.current_input or self.current_input == "0":
+        if self.is_error or self.is_new_calculation or self.current_input == "0":
             self.current_input = "0."
             self.is_new_calculation = False
+            self._is_error = False
             return self.current_input
 
         stripped = self.current_input.rstrip()
@@ -268,8 +294,9 @@ class CalculatorEngine:
 
     def append_operator(self, op: str) -> str:
         """Appends an arithmetic operator (+, -, ×, ÷, ^)."""
-        if "Error" in self.current_input:
+        if self.is_error:
             self.current_input = "0"
+            self._is_error = False
 
         self.is_new_calculation = False
 
@@ -306,9 +333,10 @@ class CalculatorEngine:
 
     def append_bracket(self, bracket: str) -> str:
         """Appends an open '(' or close ')' parenthesis."""
-        if self.is_new_calculation or self.current_input == "0" or "Error" in self.current_input:
+        if self.is_error or self.is_new_calculation or self.current_input == "0":
             self.current_input = bracket
             self.is_new_calculation = False
+            self._is_error = False
         else:
             self.current_input += bracket
         return self.current_input
@@ -316,9 +344,10 @@ class CalculatorEngine:
     def append_constant(self, constant_name: str) -> str:
         """Inserts a mathematical constant (π, e)."""
         symbol = "π" if constant_name in ("pi", "π") else "e"
-        if self.is_new_calculation or self.current_input == "0" or "Error" in self.current_input:
+        if self.is_error or self.is_new_calculation or self.current_input == "0":
             self.current_input = symbol
             self.is_new_calculation = False
+            self._is_error = False
         else:
             # If following a digit or closing parenthesis, add implicit multiplication
             if self.current_input[-1].isdigit() or self.current_input[-1] == ")":
@@ -332,9 +361,10 @@ class CalculatorEngine:
         Inserts a function call like sin(, cos(, sqrt(, ln(, etc.
         Starts a new function call or appends it to the current formula.
         """
-        if "Error" in self.current_input or self.is_new_calculation or self.current_input == "0":
+        if self.is_error or self.is_new_calculation or self.current_input == "0":
             self.current_input = f"{func_name}("
             self.is_new_calculation = False
+            self._is_error = False
             return self.current_input
 
         stripped = self.current_input.rstrip()
@@ -351,8 +381,16 @@ class CalculatorEngine:
         Applies immediate unary operation like square (x²), square root (√x),
         reciprocal (1/x), cube (x³), factorial (n!), percentage (%), or absolute value (|x|).
         """
-        if "Error" in self.current_input:
+        val_str = self.current_input.strip()
+        error_messages = (
+            "Cannot divide by zero",
+            "Invalid expression",
+            "Math domain error",
+            "Overflow: Result too large",
+        )
+        if val_str in error_messages or val_str.startswith("Error"):
             return self.current_input
+        self._is_error = False
 
         # Try to evaluate the current input first if it's an expression
         try:
@@ -361,7 +399,8 @@ class CalculatorEngine:
             try:
                 val = float(self.current_input)
             except ValueError:
-                self.current_input = "Error: Invalid expression"
+                self.current_input = "Invalid expression"
+                self._is_error = True
                 self.is_new_calculation = True
                 return self.current_input
 
@@ -398,21 +437,26 @@ class CalculatorEngine:
             self.history.add(self.previous_expression, formatted)
             self.current_input = formatted
             self.is_new_calculation = True
+            self._is_error = False
             return self.current_input
 
         except ZeroDivisionError:
-            self.current_input = "Error: Division by zero"
+            self.current_input = "Cannot divide by zero"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
         except OverflowError:
-            self.current_input = "Error: Result too large"
+            self.current_input = "Overflow: Result too large"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
         except ValueError as err:
-            msg = str(err)
-            if not msg.startswith("Error"):
-                msg = f"Error: {msg}"
-            self.current_input = msg
+            msg = str(err).lower()
+            if any(term in msg for term in ["domain", "negative", "log", "arcsin", "arccos", "tangent", "factorial"]):
+                self.current_input = "Math domain error"
+            else:
+                self.current_input = "Invalid expression"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
 
@@ -457,9 +501,10 @@ class CalculatorEngine:
 
     def backspace(self) -> str:
         """Removes the last character from current input."""
-        if "Error" in self.current_input:
+        if self.is_error:
             self.current_input = "0"
             self.is_new_calculation = True
+            self._is_error = False
             return self.current_input
 
         self.is_new_calculation = False
@@ -479,6 +524,7 @@ class CalculatorEngine:
         """C: Clears current input line."""
         self.current_input = "0"
         self.is_new_calculation = True
+        self._is_error = False
         return self.current_input
 
     def all_clear(self) -> str:
@@ -486,6 +532,7 @@ class CalculatorEngine:
         self.current_input = "0"
         self.previous_expression = ""
         self.is_new_calculation = True
+        self._is_error = False
         return self.current_input
 
     # -------------------------------------------------------------------------
@@ -554,12 +601,20 @@ class CalculatorEngine:
         Evaluates current input, updates history, and sets previous expression.
         Returns the formatted result string or clear error message.
         """
-        if "Error" in self.current_input:
-            return self.current_input
-
         original_expr = self.current_input.strip()
         if not original_expr:
             return "0"
+
+        error_messages = (
+            "Cannot divide by zero",
+            "Invalid expression",
+            "Math domain error",
+            "Overflow: Result too large",
+        )
+        if original_expr in error_messages or original_expr.startswith("Error"):
+            return original_expr
+
+        self._is_error = False
 
         try:
             result_val = self.evaluate_expression(original_expr)
@@ -570,32 +625,38 @@ class CalculatorEngine:
             self.history.add(original_expr, formatted)
             self.current_input = formatted
             self.is_new_calculation = True
+            self._is_error = False
             return self.current_input
 
         except ZeroDivisionError:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = "Error: Division by zero"
+            self.current_input = "Cannot divide by zero"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
 
         except OverflowError:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = "Error: Result too large"
+            self.current_input = "Overflow: Result too large"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
 
         except ValueError as ve:
             self.previous_expression = f"{original_expr} ="
-            msg = str(ve)
-            if not msg.startswith("Error"):
-                msg = f"Error: {msg}"
-            self.current_input = msg
+            msg = str(ve).lower()
+            if any(term in msg for term in ["domain", "negative", "log", "arcsin", "arccos", "tangent", "factorial"]):
+                self.current_input = "Math domain error"
+            else:
+                self.current_input = "Invalid expression"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
 
         except Exception:
             self.previous_expression = f"{original_expr} ="
-            self.current_input = "Error: Invalid expression"
+            self.current_input = "Invalid expression"
+            self._is_error = True
             self.is_new_calculation = True
             return self.current_input
 

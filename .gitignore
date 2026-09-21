@@ -3,9 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Local history persistence
+# Local persistence
 calculator_history.json
-test_history.json
+calculator_settings.json
+test_*.json
 
 # Environments
 .env

@@ -201,7 +201,7 @@ class TestCalculatorEngine(unittest.TestCase):
         # Negative square root friendly error
         self.calc.current_input = "-16"
         res = self.calc.apply_unary_operation("sqrt")
-        self.assertIn("negative number", res.lower())
+        self.assertEqual(res, "Math domain error")
 
     def test_advanced_reciprocal(self):
         self.calc.current_input = "4"
@@ -209,7 +209,7 @@ class TestCalculatorEngine(unittest.TestCase):
 
         self.calc.current_input = "0"
         res = self.calc.apply_unary_operation("recip")
-        self.assertIn("division by zero", res.lower())
+        self.assertEqual(res, "Cannot divide by zero")
 
     def test_advanced_absolute_value(self):
         self.calc.current_input = "-42"
@@ -224,11 +224,11 @@ class TestCalculatorEngine(unittest.TestCase):
 
         self.calc.current_input = "-4"
         res = self.calc.apply_unary_operation("fact")
-        self.assertIn("non-negative", res.lower())
+        self.assertEqual(res, "Math domain error")
 
         self.calc.current_input = "3.2"
         res = self.calc.apply_unary_operation("fact")
-        self.assertIn("integer", res.lower())
+        self.assertEqual(res, "Math domain error")
 
     def test_negative_numbers_and_sign_toggle(self):
         self.calc.current_input = "5"
@@ -263,20 +263,20 @@ class TestCalculatorEngine(unittest.TestCase):
     def test_division_by_zero(self):
         self.calc.current_input = "10 ÷ 0"
         res = self.calc.calculate()
-        self.assertIn("Division by zero", res)
+        self.assertEqual(res, "Cannot divide by zero")
 
         self.calc.current_input = "5 / (2 - 2)"
         res = self.calc.calculate()
-        self.assertIn("Division by zero", res)
+        self.assertEqual(res, "Cannot divide by zero")
 
     def test_invalid_expressions_handled_gracefully(self):
         self.calc.current_input = "5 / * 2"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
+        self.assertEqual(res, "Invalid expression")
 
         self.calc.current_input = "()"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
+        self.assertEqual(res, "Invalid expression")
 
     def test_backspace(self):
         self.calc.current_input = "1234"
@@ -429,38 +429,33 @@ class TestScientificFunctionsAndModes(unittest.TestCase):
         # Asin domain error (|x| > 1)
         self.calc.current_input = "asin(2)"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
-        self.assertIn("Arcsin", res)
+        self.assertEqual(res, "Math domain error")
 
         # Acos domain error (|x| > 1)
         self.calc.current_input = "acos(-5)"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
-        self.assertIn("Arccos", res)
+        self.assertEqual(res, "Math domain error")
 
         # Tan domain error at 90 deg
         self.calc.set_angle_mode("DEG")
         self.calc.current_input = "tan(90)"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
+        self.assertEqual(res, "Cannot divide by zero")
 
         # Log domain error (x <= 0)
         self.calc.current_input = "log10(-10)"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
-        self.assertIn("Logarithm", res)
+        self.assertEqual(res, "Math domain error")
 
         # Ln domain error (x <= 0)
         self.calc.current_input = "ln(0)"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
-        self.assertIn("log", res.lower())
+        self.assertEqual(res, "Math domain error")
 
         # Sqrt domain error (x < 0)
         self.calc.current_input = "sqrt(-25)"
         res = self.calc.calculate()
-        self.assertIn("Error", res)
-        self.assertIn("negative number", res.lower())
+        self.assertEqual(res, "Math domain error")
 
 
 class TestHistoryManager(unittest.TestCase):
@@ -540,6 +535,183 @@ class TestHistoryManager(unittest.TestCase):
         self.assertEqual(self.manager.get_latest().result, "3")
 
 
+class TestCodeReviewAndEdgeCases(unittest.TestCase):
+    """
+    Complete testing pass verifying all user-specified checklist items:
+    - Basic calculations: 2+3=5, 10-4=6, 5*6=30, 20/4=5
+    - Operator precedence: 2+3*4=14, (2+3)*4=20
+    - Scientific: sin(30) DEG = 0.5, cos(60) DEG = 0.5, tan(45) DEG = 1,
+      sqrt(144) = 12, 2^10 = 1024, 5! = 120, log(100) = 2, ln(e) = 1
+    - Edge cases: 10/0, sqrt(-1), log(0), 5.5.5, ((2+3), very large numbers
+    - Memory functions & retention
+    - Theme switching & persistence
+    - Error recovery: continuing calculation normally after error
+    """
+
+    def setUp(self):
+        self.temp_hist = "test_review_hist_temp.json"
+        self.temp_theme = "test_review_theme_temp.json"
+        for f in (self.temp_hist, self.temp_theme):
+            if os.path.exists(f):
+                os.remove(f)
+        self.history = HistoryManager(storage_file=self.temp_hist)
+        self.calc = CalculatorEngine(history_manager=self.history)
+
+    def tearDown(self):
+        for f in (self.temp_hist, self.temp_theme):
+            if os.path.exists(f):
+                os.remove(f)
+
+    def test_basic_arithmetic_checklist(self):
+        # 2+3 = 5
+        self.calc.current_input = "2 + 3"
+        self.assertEqual(self.calc.calculate(), "5")
+
+        # 10-4 = 6
+        self.calc.current_input = "10 - 4"
+        self.assertEqual(self.calc.calculate(), "6")
+
+        # 5*6 = 30
+        self.calc.current_input = "5 * 6"
+        self.assertEqual(self.calc.calculate(), "30")
+
+        # 20/4 = 5
+        self.calc.current_input = "20 / 4"
+        self.assertEqual(self.calc.calculate(), "5")
+
+    def test_operator_precedence_checklist(self):
+        # 2+3*4 = 14
+        self.calc.current_input = "2 + 3 * 4"
+        self.assertEqual(self.calc.calculate(), "14")
+
+        # (2+3)*4 = 20
+        self.calc.current_input = "(2 + 3) * 4"
+        self.assertEqual(self.calc.calculate(), "20")
+
+    def test_scientific_checklist(self):
+        # sin(30) DEG = 0.5
+        self.calc.set_angle_mode("DEG")
+        self.calc.current_input = "sin(30)"
+        self.assertEqual(self.calc.calculate(), "0.5")
+
+        # cos(60) DEG = 0.5
+        self.calc.current_input = "cos(60)"
+        self.assertEqual(self.calc.calculate(), "0.5")
+
+        # tan(45) DEG = 1
+        self.calc.current_input = "tan(45)"
+        self.assertEqual(self.calc.calculate(), "1")
+
+        # sqrt(144) = 12
+        self.calc.current_input = "sqrt(144)"
+        self.assertEqual(self.calc.calculate(), "12")
+
+        # 2^10 = 1024
+        self.calc.current_input = "2 ^ 10"
+        self.assertEqual(self.calc.calculate(), "1024")
+
+        # 5! = 120
+        self.calc.current_input = "5!"
+        self.assertEqual(self.calc.calculate(), "120")
+
+        # log(100) = 2
+        self.calc.current_input = "log(100)"
+        self.assertEqual(self.calc.calculate(), "2")
+
+        # ln(e) = 1
+        self.calc.current_input = "ln(e)"
+        self.assertEqual(self.calc.calculate(), "1")
+
+    def test_edge_cases_checklist(self):
+        # 10/0 -> "Cannot divide by zero"
+        self.calc.current_input = "10 / 0"
+        self.assertEqual(self.calc.calculate(), "Cannot divide by zero")
+
+        # sqrt(-1) -> "Math domain error"
+        self.calc.current_input = "sqrt(-1)"
+        self.assertEqual(self.calc.calculate(), "Math domain error")
+
+        # log(0) -> "Math domain error"
+        self.calc.current_input = "log(0)"
+        self.assertEqual(self.calc.calculate(), "Math domain error")
+
+        # 5.5.5 -> "Invalid expression"
+        self.calc.current_input = "5.5.5"
+        self.assertEqual(self.calc.calculate(), "Invalid expression")
+
+        # ((2+3) -> auto balances unclosed parentheses -> 5
+        self.calc.current_input = "((2 + 3)"
+        self.assertEqual(self.calc.calculate(), "5")
+
+        # very large numbers -> scientific notation or overflow
+        self.calc.current_input = "2 ^ 100"
+        res = self.calc.calculate()
+        self.assertTrue("e+" in res or len(res) > 20)
+
+        self.calc.current_input = "10 ^ 500"
+        self.assertEqual(self.calc.calculate(), "Overflow: Result too large")
+
+    def test_error_recovery(self):
+        # Trigger division by zero error
+        self.calc.current_input = "10 / 0"
+        res = self.calc.calculate()
+        self.assertEqual(res, "Cannot divide by zero")
+        self.assertTrue(self.calc.is_error)
+
+        # Typing a new number immediately clears error and begins fresh calculation
+        self.calc.append_number("8")
+        self.assertEqual(self.calc.current_input, "8")
+        self.assertFalse(self.calc.is_error)
+
+        self.calc.append_operator("+")
+        self.calc.append_number("2")
+        self.assertEqual(self.calc.calculate(), "10")
+
+    def test_memory_functions_full_flow(self):
+        # Initially empty memory
+        self.assertFalse(self.calc.has_memory)
+
+        # MS: store 42
+        self.calc.current_input = "42"
+        self.calc.memory_store()
+        self.assertTrue(self.calc.has_memory)
+        self.assertEqual(self.calc.memory_value, 42.0)
+
+        # M+: add 8 -> 50
+        self.calc.current_input = "8"
+        self.calc.memory_add()
+        self.assertEqual(self.calc.memory_value, 50.0)
+
+        # M-: subtract 20 -> 30
+        self.calc.current_input = "20"
+        self.calc.memory_subtract()
+        self.assertEqual(self.calc.memory_value, 30.0)
+
+        # MR: recall 30
+        self.calc.current_input = "0"
+        self.calc.memory_recall()
+        self.assertEqual(self.calc.current_input, "30")
+
+        # MC: clear memory
+        self.calc.memory_clear()
+        self.assertFalse(self.calc.has_memory)
+        self.assertEqual(self.calc.memory_value, 0.0)
+
+    def test_theme_persistence_and_restart(self):
+        from theme import ThemeManager
+        tm = ThemeManager(settings_file=self.temp_theme, initial_mode="dark")
+        self.assertEqual(tm.current_mode, "dark")
+
+        # Toggle to light
+        new_mode = tm.toggle()
+        self.assertEqual(new_mode, "light")
+
+        # Simulate restart by instantiating new ThemeManager with same file
+        reloaded_tm = ThemeManager(settings_file=self.temp_theme)
+        self.assertEqual(reloaded_tm.current_mode, "light")
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

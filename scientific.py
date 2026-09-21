@@ -86,7 +86,7 @@ class ScientificEngine:
         """
         val = float(x)
         if not -1.0 <= val <= 1.0:
-            raise ValueError("Arcsin requires input between -1 and 1")
+            raise ValueError("Math domain error: Arcsin requires input between -1 and 1")
         res = cls._from_radians(math.asin(val), mode)
         rounded = round(res, 12)
         return 0.0 if abs(rounded) < 1e-12 else rounded
@@ -99,7 +99,7 @@ class ScientificEngine:
         """
         val = float(x)
         if not -1.0 <= val <= 1.0:
-            raise ValueError("Arccos requires input between -1 and 1")
+            raise ValueError("Math domain error: Arccos requires input between -1 and 1")
         res = cls._from_radians(math.acos(val), mode)
         rounded = round(res, 12)
         return 0.0 if abs(rounded) < 1e-12 else rounded
@@ -149,7 +149,7 @@ class ScientificEngine:
         """
         val = float(x)
         if val <= 0:
-            raise ValueError("Natural log requires value > 0")
+            raise ValueError("Math domain error: Natural log requires value > 0")
         return math.log(val)
 
     @staticmethod
@@ -160,7 +160,7 @@ class ScientificEngine:
         """
         val = float(x)
         if val <= 0:
-            raise ValueError("Logarithm requires value > 0")
+            raise ValueError("Math domain error: Logarithm requires value > 0")
         return math.log10(val)
 
     @staticmethod
@@ -168,7 +168,7 @@ class ScientificEngine:
         """Logarithm base 2 with domain validation."""
         val = float(x)
         if val <= 0:
-            raise ValueError("Logarithm requires value > 0")
+            raise ValueError("Math domain error: Logarithm requires value > 0")
         return math.log2(val)
 
     @staticmethod
@@ -224,7 +224,7 @@ class ScientificEngine:
         """
         val = float(x)
         if val < 0:
-            raise ValueError("Cannot calculate square root of negative number")
+            raise ValueError("Math domain error: Cannot calculate square root of negative number")
         return math.sqrt(val)
 
     @staticmethod
@@ -249,7 +249,7 @@ class ScientificEngine:
 
             # Check complex/imaginary results: negative base with fractional exponent
             if b < 0 and not exp.is_integer():
-                raise ValueError("Negative base cannot have fractional exponent")
+                raise ValueError("Math domain error: negative base with fractional exponent")
 
             res = math.pow(b, exp)
             if math.isinf(res):
@@ -271,12 +271,12 @@ class ScientificEngine:
         try:
             val = float(n)
         except (ValueError, TypeError):
-            raise ValueError("Factorial requires a valid number")
+            raise ValueError("Math domain error: Factorial requires a valid number")
 
         if val < 0:
-            raise ValueError("Factorial requires a non-negative number")
+            raise ValueError("Math domain error: Factorial requires a non-negative number")
         if not val.is_integer():
-            raise ValueError("Factorial is only defined for integers")
+            raise ValueError("Math domain error: Factorial is only defined for integers")
         if val > 170:
             raise OverflowError("Factorial input too large (maximum 170)")
 
