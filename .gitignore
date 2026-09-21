@@ -25,3 +25,7 @@ ENV/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Temporary scratch directory
+scratch/
+

@@ -105,11 +105,64 @@ class Theme:
         "corner_radius": 8,
     }
 
+    # 10. Sidebar Navigation Items
+    SIDEBAR_BG: Tuple[str, str] = ("#0B1120", "#F8FAFC")
+    SIDEBAR_HOVER: Tuple[str, str] = ("#1E293B", "#E2E8F0")
+
+    BTN_SIDEBAR = {
+        "fg_color": "transparent",
+        "hover_color": ("#1E293B", "#E2E8F0"),
+        "text_color": ("#94A3B8", "#475569"),
+        "corner_radius": 8,
+        "anchor": "w",
+        "height": 36,
+    }
+
+    BTN_SIDEBAR_ACTIVE = {
+        "fg_color": ("#1E293B", "#E2E8F0"),
+        "hover_color": ("#334155", "#CBD5E1"),
+        "text_color": ("#38BDF8", "#0284C7"),
+        "corner_radius": 8,
+        "anchor": "w",
+        "height": 36,
+    }
+
+    # 11. Right Panel Tabs (History & Memory)
+    TAB_INACTIVE = {
+        "fg_color": "transparent",
+        "hover_color": ("#334155", "#E2E8F0"),
+        "text_color": ("#94A3B8", "#64748B"),
+        "corner_radius": 6,
+    }
+
+    TAB_ACTIVE = {
+        "fg_color": ("#2563EB", "#2563EB"),
+        "hover_color": ("#1D4ED8", "#1D4ED8"),
+        "text_color": ("#FFFFFF", "#FFFFFF"),
+        "corner_radius": 6,
+    }
+
 
 class Fonts:
     """Standardized font configurations for consistent responsive typography."""
 
     FONT_FAMILY = "Segoe UI"
+
+    @classmethod
+    def sidebar_header(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=11, weight="bold")
+
+    @classmethod
+    def sidebar_item(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=13, weight="normal")
+
+    @classmethod
+    def mode_title(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=16, weight="bold")
+
+    @classmethod
+    def tab_title(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=12, weight="bold")
 
     @classmethod
     def display_result(cls) -> ctk.CTkFont:
