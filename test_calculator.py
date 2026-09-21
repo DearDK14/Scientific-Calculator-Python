@@ -711,7 +711,234 @@ class TestCodeReviewAndEdgeCases(unittest.TestCase):
         self.assertEqual(reloaded_tm.current_mode, "light")
 
 
+class TestStandardCalculatorMode(unittest.TestCase):
+    """
+    Unit tests specifically validating the Standard Calculator Mode:
+    - Addition, subtraction, multiplication, division
+    - Operator precedence (PEMDAS)
+    - Parentheses (nested, implicit multiplication, auto-balancing)
+    - Percentage operations (unary % and expression %)
+    - Decimal numbers and duplicate dot prevention
+    - Sign change (±) and negative numbers
+    - Division by zero and error recovery
+    - Memory operations (MC, MR, M+, M-, MS)
+    - Calculation history logging
+    - Clear (C, CE) and backspace (DEL)
+    """
+
+    def setUp(self):
+        self.temp_dir = os.path.dirname(os.path.abspath(__file__))
+        self.temp_hist = os.path.join(self.temp_dir, "test_standard_hist.json")
+        self.history = HistoryManager(storage_file=self.temp_hist)
+        self.calc = CalculatorEngine(history_manager=self.history)
+
+    def tearDown(self):
+        if os.path.exists(self.temp_hist):
+            try:
+                os.remove(self.temp_hist)
+            except Exception:
+                pass
+
+    def test_basic_arithmetic_operations(self):
+        # Addition
+        self.calc.current_input = "12.5 + 7.5"
+        self.assertEqual(self.calc.calculate(), "20")
+
+        # Subtraction
+        self.calc.current_input = "100 - 45.5"
+        self.assertEqual(self.calc.calculate(), "54.5")
+
+        # Multiplication
+        self.calc.current_input = "15 * 6"
+        self.assertEqual(self.calc.calculate(), "90")
+
+        # Division
+        self.calc.current_input = "144 / 12"
+        self.assertEqual(self.calc.calculate(), "12")
+
+        # Fractional division
+        self.calc.current_input = "7 / 2"
+        self.assertEqual(self.calc.calculate(), "3.5")
+
+    def test_operator_precedence_pemdas(self):
+        # Multiplication before addition: 2 + 3 * 4 = 14
+        self.calc.current_input = "2 + 3 * 4"
+        self.assertEqual(self.calc.calculate(), "14")
+
+        # Division before subtraction: 10 - 6 / 2 = 7
+        self.calc.current_input = "10 - 6 / 2"
+        self.assertEqual(self.calc.calculate(), "7")
+
+        # Left-to-right division and multiplication: 20 / 4 * 2 = 10
+        self.calc.current_input = "20 / 4 * 2"
+        self.assertEqual(self.calc.calculate(), "10")
+
+        # Complex precedence: 100 - 50 / 2 + 10 = 85
+        self.calc.current_input = "100 - 50 / 2 + 10"
+        self.assertEqual(self.calc.calculate(), "85")
+
+    def test_parentheses_and_grouping(self):
+        # Parentheses override precedence: (2 + 3) * 4 = 20
+        self.calc.current_input = "(2 + 3) * 4"
+        self.assertEqual(self.calc.calculate(), "20")
+
+        # Nested parentheses: ((5 + 3) * 2) - 6 = 10
+        self.calc.current_input = "((5 + 3) * 2) - 6"
+        self.assertEqual(self.calc.calculate(), "10")
+
+        # Parentheses in denominator: 30 / (2 + 3) = 6
+        self.calc.current_input = "30 / (2 + 3)"
+        self.assertEqual(self.calc.calculate(), "6")
+
+        # Implicit multiplication: 5(2 + 3) = 25
+        self.calc.current_input = "5(2 + 3)"
+        self.assertEqual(self.calc.calculate(), "25")
+
+        # Auto-balancing unclosed open parentheses: (10 + 5 * 2 = 20
+        self.calc.current_input = "(10 + 5 * 2"
+        self.assertEqual(self.calc.calculate(), "20")
+
+    def test_percentage_operations(self):
+        # Unary percentage button operation (x / 100)
+        self.calc.current_input = "50"
+        res = self.calc.apply_unary_operation("percent")
+        self.assertEqual(res, "0.5")
+        self.assertEqual(self.calc.previous_expression, "50%")
+
+        self.calc.current_input = "250"
+        res = self.calc.apply_unary_operation("percent")
+        self.assertEqual(res, "2.5")
+
+        # Percentage inside expression: 200 * 10% = 20
+        self.calc.current_input = "200 * 10%"
+        self.assertEqual(self.calc.calculate(), "20")
+
+    def test_decimal_numbers_and_validation(self):
+        # Decimal addition
+        self.calc.current_input = "0.1 + 0.2"
+        self.assertEqual(self.calc.calculate(), "0.3")
+
+        # Keypad decimal entry
+        self.calc.clear()
+        self.calc.append_decimal()  # Starts as '0.'
+        self.assertEqual(self.calc.current_input, "0.")
+        self.calc.append_number("7")
+        self.assertEqual(self.calc.current_input, "0.7")
+
+        # Multiple decimals in single operand prevented
+        self.calc.append_decimal()
+        self.assertEqual(self.calc.current_input, "0.7")
+
+        # Invalid multiple dots in expression string
+        self.calc.current_input = "5.5.5"
+        self.assertEqual(self.calc.calculate(), "Invalid expression")
+
+    def test_negative_numbers_and_sign_change(self):
+        # Sign toggle on positive integer
+        self.calc.current_input = "42"
+        self.calc.toggle_sign()
+        self.assertEqual(self.calc.current_input, "-42")
+
+        # Sign toggle on negative number
+        self.calc.toggle_sign()
+        self.assertEqual(self.calc.current_input, "42")
+
+        # Expression with negative operand: -8 + 15 = 7
+        self.calc.current_input = "-8 + 15"
+        self.assertEqual(self.calc.calculate(), "7")
+
+        # Multiplication with negative number: 5 * (-3) = -15
+        self.calc.current_input = "5 * (-3)"
+        self.assertEqual(self.calc.calculate(), "-15")
+
+    def test_division_by_zero_and_recovery(self):
+        self.calc.current_input = "100 / 0"
+        self.assertEqual(self.calc.calculate(), "Cannot divide by zero")
+        self.assertTrue(self.calc.is_error)
+
+        # Immediate recovery on next digit input
+        self.calc.append_number("9")
+        self.assertEqual(self.calc.current_input, "9")
+        self.assertFalse(self.calc.is_error)
+
+        self.calc.append_operator("+")
+        self.calc.append_number("1")
+        self.assertEqual(self.calc.calculate(), "10")
+
+    def test_clear_and_backspace_behaviors(self):
+        # DEL / Backspace
+        self.calc.current_input = "12345"
+        self.calc.backspace()
+        self.assertEqual(self.calc.current_input, "1234")
+
+        # Backspace down to zero
+        self.calc.current_input = "9"
+        self.calc.backspace()
+        self.assertEqual(self.calc.current_input, "0")
+
+        # CE / Clear input
+        self.calc.current_input = "999"
+        self.calc.clear()
+        self.assertEqual(self.calc.current_input, "0")
+
+        # C / All Clear: clears input and previous expression
+        self.calc.current_input = "50"
+        self.calc.previous_expression = "25 * 2 ="
+        self.calc.all_clear()
+        self.assertEqual(self.calc.current_input, "0")
+        self.assertEqual(self.calc.previous_expression, "")
+
+    def test_memory_operations_standard_flow(self):
+        # Initial empty state
+        self.assertFalse(self.calc.has_memory)
+        self.assertEqual(self.calc.memory_value, 0.0)
+
+        # MS (Store): store 120
+        self.calc.current_input = "120"
+        self.assertTrue(self.calc.memory_store())
+        self.assertTrue(self.calc.has_memory)
+        self.assertEqual(self.calc.memory_value, 120.0)
+
+        # M+ (Add): add 30 -> 150
+        self.calc.current_input = "30"
+        self.assertTrue(self.calc.memory_add())
+        self.assertEqual(self.calc.memory_value, 150.0)
+
+        # M- (Subtract): subtract 50 -> 100
+        self.calc.current_input = "50"
+        self.assertTrue(self.calc.memory_subtract())
+        self.assertEqual(self.calc.memory_value, 100.0)
+
+        # MR (Recall): recall into fresh calculation
+        self.calc.clear()
+        self.assertEqual(self.calc.memory_recall(), "100")
+
+        # MC (Clear): reset memory
+        self.calc.memory_clear()
+        self.assertFalse(self.calc.has_memory)
+        self.assertEqual(self.calc.memory_value, 0.0)
+
+    def test_calculation_history_standard_flow(self):
+        self.calc.current_input = "25 * 4"
+        self.assertEqual(self.calc.calculate(), "100")
+
+        entries = self.history.get_all()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].expression, "25 * 4")
+        self.assertEqual(entries[0].result, "100")
+
+        # Perform second calculation
+        self.calc.current_input = "(10 + 20) / 2"
+        self.assertEqual(self.calc.calculate(), "15")
+
+        entries = self.history.get_all()
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(entries[0].expression, "(10 + 20) / 2")
+        self.assertEqual(entries[0].result, "15")
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

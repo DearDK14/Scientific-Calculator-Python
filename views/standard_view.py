@@ -169,9 +169,9 @@ class StandardView(BaseModeView):
              ("CE", self._on_clear, Theme.BTN_ACTION, Fonts.button_bottom(), "Clear Entry"),
              ("C", self._on_all_clear, Theme.BTN_ACTION, Fonts.button_bottom(), "All Clear (Escape)"),
              ("DEL", self._on_backspace, Theme.BTN_ACTION, Fonts.button_bottom(), "Backspace: delete last digit")],
-            # Row 1: 1/x x² √x ÷
-            [("1/x", lambda: self._on_unary("recip"), Theme.BTN_SCIENTIFIC, Fonts.button_scientific(), "Reciprocal (1/x)"),
-             ("x²", lambda: self._on_unary("sqr"), Theme.BTN_SCIENTIFIC, Fonts.button_scientific(), "Square (x²)"),
+            # Row 1: ( ) √x ÷
+            [("(", lambda: self._on_bracket("("), Theme.BTN_BRACKET, Fonts.button_bottom(), "Open parenthesis: ("),
+             (")", lambda: self._on_bracket(")"), Theme.BTN_BRACKET, Fonts.button_bottom(), "Close parenthesis: )"),
              ("√x", self._on_sqrt, Theme.BTN_SCIENTIFIC, Fonts.button_scientific(), "Square root (√x)"),
              ("÷", lambda: self._on_operator("/"), Theme.BTN_OPERATOR, Fonts.button_operator(), "Divide (/)")],
             # Row 2: 7 8 9 ×
@@ -254,6 +254,10 @@ class StandardView(BaseModeView):
 
     def _on_operator(self, op: str) -> None:
         self.engine.append_operator(op)
+        self._update_display()
+
+    def _on_bracket(self, bracket: str) -> None:
+        self.engine.append_bracket(bracket)
         self._update_display()
 
     def _on_unary(self, op: str) -> None:
@@ -387,6 +391,8 @@ class StandardView(BaseModeView):
             self._on_operator(value)
         elif action_type == "decimal":
             self._on_decimal()
+        elif action_type == "bracket" and value is not None:
+            self._on_bracket(value)
         elif action_type == "equals":
             self._on_equals()
         elif action_type == "backspace":
