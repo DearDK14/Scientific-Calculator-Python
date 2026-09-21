@@ -61,7 +61,7 @@ class SidebarNavigation(ctk.CTkFrame):
         self,
         parent: ctk.CTkFrame,
         on_mode_select: Callable[[str], None],
-        initial_mode: str = "scientific",
+        initial_mode: str = "standard",
         **kwargs,
     ):
         super().__init__(

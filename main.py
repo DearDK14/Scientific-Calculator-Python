@@ -80,8 +80,8 @@ class ModernCalculatorApp(ctk.CTk):
         self._build_shell_layout()
         self._bind_keyboard_shortcuts()
 
-        # Load initial default mode (Scientific)
-        self.switch_mode("scientific")
+        # Load initial default mode (Standard)
+        self.switch_mode("standard")
 
     def _set_window_icon(self) -> None:
         """Sets application window icon if available."""
@@ -194,7 +194,7 @@ class ModernCalculatorApp(ctk.CTk):
         self.sidebar = SidebarNavigation(
             self,
             on_mode_select=self.switch_mode,
-            initial_mode="scientific",
+            initial_mode="standard",
         )
         self.sidebar.grid(row=1, column=0, sticky="nsew", padx=(12, 4), pady=(0, 12))
 
