@@ -100,16 +100,21 @@ python -m unittest test_calculator.py
 
 | Key | Action |
 | :--- | :--- |
-| `0` - `9` | Enter numbers |
+| `0` - `9` | Enter numbers (supports main keyboard & Numpad) |
 | `.` | Decimal point |
 | `+`, `-`, `*`, `/` | Basic arithmetic operators |
+| `%` | Percentage calculation |
+| `!` | Factorial calculation |
 | `^` | Power / Exponentiation |
 | `(` and `)` | Parentheses |
 | `Enter` or `=` | Calculate result |
 | `Backspace` | Delete last character |
-| `Delete` | Clear current input (`C`) |
-| `Escape` | All Clear (`AC`) |
+| `Escape` | Clear current input (`C`) / All Clear |
 | `p` / `P` | Insert constant $\pi$ |
+| `e` / `E` | Insert Euler's number $e$ |
+| `Ctrl + C` | Copy current result or expression to system clipboard |
+| `Ctrl + V` | Paste expression safely from system clipboard |
+| `Ctrl + A` | Select / highlight current expression |
 
 ---
 

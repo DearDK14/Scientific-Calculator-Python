@@ -463,5 +463,83 @@ class TestScientificFunctionsAndModes(unittest.TestCase):
         self.assertIn("negative number", res.lower())
 
 
+class TestHistoryManager(unittest.TestCase):
+    """Unit tests for HistoryManager and its integration with CalculatorEngine."""
+
+    def setUp(self):
+        self.test_file = "test_calc_history_temp.json"
+        if os.path.exists(self.test_file):
+            os.remove(self.test_file)
+        self.manager = HistoryManager(storage_file=self.test_file, max_entries=5)
+
+    def tearDown(self):
+        if os.path.exists(self.test_file):
+            os.remove(self.test_file)
+
+    def test_add_and_retrieve_entries(self):
+        entry1 = self.manager.add("25 * 4", "100")
+        self.assertEqual(entry1.display_text(), "25 * 4 = 100")
+        self.assertEqual(len(self.manager.get_all()), 1)
+
+        entry2 = self.manager.add("sin(30)", "0.5")
+        entries = self.manager.get_all()
+        self.assertEqual(len(entries), 2)
+        # Newest calculation should appear first
+        self.assertEqual(entries[0].expression, "sin(30)")
+        self.assertEqual(entries[1].expression, "25 * 4")
+        self.assertEqual(self.manager.get_latest().result, "0.5")
+
+    def test_max_capacity_truncation(self):
+        for i in range(10):
+            self.manager.add(f"{i} + 1", f"{i + 1}")
+        entries = self.manager.get_all()
+        self.assertEqual(len(entries), 5)
+        # Last added was 9 + 1 = 10
+        self.assertEqual(entries[0].expression, "9 + 1")
+
+    def test_clear_history(self):
+        self.manager.add("10 + 20", "30")
+        self.assertEqual(len(self.manager.get_all()), 1)
+        self.manager.clear()
+        self.assertEqual(len(self.manager.get_all()), 0)
+        self.assertIsNone(self.manager.get_latest())
+
+    def test_delete_entry(self):
+        self.manager.add("1 + 1", "2")
+        self.manager.add("2 + 2", "4")
+        self.assertTrue(self.manager.delete_entry(0))
+        entries = self.manager.get_all()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].expression, "1 + 1")
+
+    def test_file_persistence_save_and_load(self):
+        self.manager.add("100 / 4", "25")
+        self.assertTrue(os.path.exists(self.test_file))
+
+        # Create new manager loading from same file
+        reloaded = HistoryManager(storage_file=self.test_file, max_entries=5)
+        entries = reloaded.get_all()
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].expression, "100 / 4")
+        self.assertEqual(entries[0].result, "25")
+
+    def test_calculator_engine_records_history(self):
+        engine = CalculatorEngine(history_manager=self.manager)
+        engine.current_input = "15 * 6"
+        res = engine.calculate()
+        self.assertEqual(res, "90")
+        self.assertEqual(len(self.manager.get_all()), 1)
+        self.assertEqual(self.manager.get_latest().expression, "15 * 6")
+        self.assertEqual(self.manager.get_latest().result, "90")
+
+        # Unary operation records history
+        engine.current_input = "9"
+        res_sqrt = engine.apply_unary_operation("sqrt")
+        self.assertEqual(res_sqrt, "3")
+        self.assertEqual(len(self.manager.get_all()), 2)
+        self.assertEqual(self.manager.get_latest().result, "3")
+
+
 if __name__ == "__main__":
     unittest.main()
+

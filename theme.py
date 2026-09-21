@@ -19,12 +19,16 @@ class Theme:
     WINDOW_BG: Tuple[str, str] = ("#0F172A", "#F1F5F9")
     DISPLAY_BG: Tuple[str, str] = ("#1E293B", "#FFFFFF")
     PANEL_BG: Tuple[str, str] = ("#1E293B", "#E2E8F0")
+    CARD_BG: Tuple[str, str] = ("#182030", "#FFFFFF")
+    CARD_HOVER: Tuple[str, str] = ("#26334D", "#EAEFF7")
     BORDER_COLOR: Tuple[str, str] = ("#334155", "#CBD5E1")
+    DIVIDER_COLOR: Tuple[str, str] = ("#2D3748", "#CBD5E1")
 
     # Text colors
     TEXT_PRIMARY: Tuple[str, str] = ("#F8FAFC", "#0F172A")
     TEXT_SECONDARY: Tuple[str, str] = ("#94A3B8", "#64748B")
     TEXT_ACCENT: Tuple[str, str] = ("#38BDF8", "#0284C7")
+    TEXT_SUCCESS: Tuple[str, str] = ("#10B981", "#059669")
 
     # 1. Number Buttons (0-9, .)
     BTN_NUMBER = {
@@ -82,6 +86,14 @@ class Theme:
         "corner_radius": 8,
     }
 
+    # 8. Copy Button (Display header)
+    BTN_COPY = {
+        "fg_color": "transparent",
+        "hover_color": ("#334155", "#E2E8F0"),
+        "text_color": ("#94A3B8", "#64748B"),
+        "corner_radius": 6,
+    }
+
 
 class Fonts:
     """Standardized font configurations for consistent responsive typography."""
@@ -115,6 +127,22 @@ class Fonts:
     @classmethod
     def label_badge(cls) -> ctk.CTkFont:
         return ctk.CTkFont(family=cls.FONT_FAMILY, size=11, weight="bold")
+
+    @classmethod
+    def history_title(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=15, weight="bold")
+
+    @classmethod
+    def history_expr(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=13, weight="normal")
+
+    @classmethod
+    def history_result(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=14, weight="bold")
+
+    @classmethod
+    def history_time(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=10, weight="normal")
 
 
 class ThemeManager:
