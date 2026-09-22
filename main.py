@@ -38,6 +38,8 @@ from views import (
     GraphingView,
     ScientificView,
     StandardView,
+    ProgrammerView,
+    DateCalcView,
     PlaceholderView,
     SettingsView,
 )
@@ -262,6 +264,10 @@ class ModernCalculatorApp(ctk.CTk):
             return ScientificView(self.content_container, app=self)
         elif mode_id == "graphing":
             return GraphingView(self.content_container, app=self)
+        elif mode_id == "programmer":
+            return ProgrammerView(self.content_container, app=self)
+        elif mode_id == "date_calc":
+            return DateCalcView(self.content_container, app=self)
         elif mode_id == "settings":
             return SettingsView(self.content_container, app=self)
         else:

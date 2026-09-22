@@ -199,12 +199,15 @@ class HistoryMemoryPanel(ctk.CTkFrame):
 
     def _load_history_entry(self, entry: HistoryEntry) -> None:
         """Loads a previous calculation result into the active calculator."""
-        self.app.engine.current_input = entry.result
-        self.app.engine.previous_expression = f"{entry.expression} ="
-        self.app.engine.is_new_calculation = True
-        self.app.refresh_current_view()
-        if hasattr(self.app.current_view, "_show_feedback"):
-            self.app.current_view._show_feedback("Loaded from history", Theme.TEXT_ACCENT)
+        if hasattr(self.app.current_view, "load_history_value"):
+            self.app.current_view.load_history_value(entry.result, entry.expression)
+        else:
+            self.app.engine.current_input = entry.result
+            self.app.engine.previous_expression = f"{entry.expression} ="
+            self.app.engine.is_new_calculation = True
+            self.app.refresh_current_view()
+            if hasattr(self.app.current_view, "_show_feedback"):
+                self.app.current_view._show_feedback("Loaded from history", Theme.TEXT_ACCENT)
 
     def _clear_history(self) -> None:
         self.app.history_mgr.clear()

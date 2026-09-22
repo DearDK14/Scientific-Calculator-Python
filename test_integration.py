@@ -14,6 +14,8 @@ from main import ModernCalculatorApp
 from views.standard_view import StandardView
 from views.scientific_view import ScientificView
 from views.graphing_view import GraphingView
+from views.programmer_view import ProgrammerView
+from views.date_view import DateCalcView
 from views.settings_view import SettingsView
 
 
@@ -89,13 +91,47 @@ class TestAppModeSwitching(unittest.TestCase):
         self.assertEqual(self.app.title_label.cget("text"), "Standard")
         self.assertEqual(self.app.deg_rad_btn.winfo_manager(), "")
 
-    def test_05_theme_sync(self):
-        """Switching theme propagates to theme manager and view."""
+    def test_05_switch_to_programmer(self):
+        """Switching to programmer mounts ProgrammerView and verifies bit logic."""
+        self.app.switch_mode("programmer")
+        self.assertEqual(self.app.current_mode_id, "programmer")
+        self.assertIsInstance(self.app.current_view, ProgrammerView)
+        self.assertEqual(self.app.title_label.cget("text"), "Programmer")
+        self.assertEqual(self.app.deg_rad_btn.winfo_manager(), "")
+
+        prog_view: ProgrammerView = self.app.current_view
+        # Test input and bit toggle
+        prog_view.engine.set_value(0xA5)
+        prog_view._update_display()
+        self.assertEqual(prog_view.engine.get_hex_string(), "A5")
+        self.assertEqual(prog_view.engine.get_dec_string(), "165")
+        # Toggle bit 0 (from 1 to 0) -> 0xA4 (164)
+        prog_view._on_toggle_bit(0)
+        self.assertEqual(prog_view.engine.current_value, 0xA4)
+
+    def test_06_switch_to_date_calc(self):
+        """Switching to date_calc mounts DateCalcView and verifies calculations."""
+        self.app.switch_mode("date_calc")
+        self.assertEqual(self.app.current_mode_id, "date_calc")
+        self.assertIsInstance(self.app.current_view, DateCalcView)
+        self.assertEqual(self.app.title_label.cget("text"), "Date Calculation")
+        self.assertEqual(self.app.deg_rad_btn.winfo_manager(), "")
+
+        date_view: DateCalcView = self.app.current_view
+        # Check sub-mode tabs
+        self.assertEqual(date_view.tab_selector.get(), "Difference")
+        date_view._on_tab_changed("Add / Subtract")
+        self.assertEqual(date_view.current_tab, "Add / Subtract")
+        date_view._on_tab_changed("Date Info")
+        self.assertEqual(date_view.current_tab, "Date Info")
+
+    def test_07_theme_sync(self):
+        """Switching theme propagates to theme manager and views."""
         self.app.theme_mgr.set_mode("light")
         self.assertEqual(self.app.theme_mgr.current_mode, "light")
-        # Switch to graphing to ensure canvas theme updates
-        self.app.switch_mode("graphing")
-        self.assertIsInstance(self.app.current_view, GraphingView)
+        # Switch to programmer to ensure theme is sound
+        self.app.switch_mode("programmer")
+        self.assertIsInstance(self.app.current_view, ProgrammerView)
         # Restore dark
         self.app.theme_mgr.set_mode("dark")
         self.assertEqual(self.app.theme_mgr.current_mode, "dark")

@@ -32,6 +32,10 @@ class Theme:
     TEXT_SECONDARY: Tuple[str, str] = ("#94A3B8", "#64748B")
     TEXT_ACCENT: Tuple[str, str] = ("#38BDF8", "#0284C7")
     TEXT_SUCCESS: Tuple[str, str] = ("#10B981", "#059669")
+    TEXT_ERROR: Tuple[str, str] = ("#EF4444", "#DC2626")
+    TEXT_MUTED: Tuple[str, str] = ("#475569", "#94A3B8")
+    ACCENT_PRIMARY: Tuple[str, str] = ("#2563EB", "#2563EB")
+    ACCENT_HOVER: Tuple[str, str] = ("#1D4ED8", "#1D4ED8")
 
     # 1. Number Buttons (0-9, .)
     BTN_NUMBER = {
@@ -189,6 +193,10 @@ class Fonts:
         return ctk.CTkFont(family=cls.FONT_FAMILY, size=12, weight="bold")
 
     @classmethod
+    def button_standard(cls) -> ctk.CTkFont:
+        return ctk.CTkFont(family=cls.FONT_FAMILY, size=14, weight="bold")
+
+    @classmethod
     def button_bottom(cls) -> ctk.CTkFont:
         return ctk.CTkFont(family=cls.FONT_FAMILY, size=16, weight="bold")
 
@@ -287,9 +295,12 @@ class CTkToolTip:
         self.tip_window: Optional[tk.Toplevel] = None
         self._after_id: Optional[str] = None
 
-        self.widget.bind("<Enter>", self._on_enter, add="+")
-        self.widget.bind("<Leave>", self._on_leave, add="+")
-        self.widget.bind("<ButtonPress>", self._on_leave, add="+")
+        try:
+            self.widget.bind("<Enter>", self._on_enter, add="+")
+            self.widget.bind("<Leave>", self._on_leave, add="+")
+            self.widget.bind("<ButtonPress>", self._on_leave, add="+")
+        except (NotImplementedError, AttributeError):
+            pass
 
     def _on_enter(self, event=None) -> None:
         self._cancel()
