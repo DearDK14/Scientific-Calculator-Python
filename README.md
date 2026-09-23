@@ -262,7 +262,7 @@ ScientificCalculator/
 ---
 
 ## 👤 15. Author Section
-Developed with ❤️ by **Dinesh Kumar** ([DearDK14](https://github.com/DearDK14))
+Developed with ❤️ by **Dinesh Kaam** ([DearDK14](https://github.com/DearDK14))
 
 - **GitHub**: [@DearDK14](https://github.com/DearDK14)
 - **Repository**: [Scientific-Calculator-Python](https://github.com/DearDK14/Scientific-Calculator-Python)
