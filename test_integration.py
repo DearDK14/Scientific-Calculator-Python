@@ -16,6 +16,8 @@ from views.scientific_view import ScientificView
 from views.graphing_view import GraphingView
 from views.programmer_view import ProgrammerView
 from views.date_view import DateCalcView
+from views.unit_converter_view import UnitConverterView
+from views.currency_view import CurrencyView
 from views.settings_view import SettingsView
 
 
@@ -135,6 +137,53 @@ class TestAppModeSwitching(unittest.TestCase):
         # Restore dark
         self.app.theme_mgr.set_mode("dark")
         self.assertEqual(self.app.theme_mgr.current_mode, "dark")
+
+
+    def test_08_switch_to_currency(self):
+        """Switching to currency mounts CurrencyView."""
+        self.app.switch_mode("currency")
+        self.assertEqual(self.app.current_mode_id, "currency")
+        self.assertIsInstance(self.app.current_view, CurrencyView)
+        self.assertEqual(self.app.title_label.cget("text"), "Currency Converter")
+        curr_view: CurrencyView = self.app.current_view
+        self.assertIsNotNone(curr_view.result_label.cget("text"))
+
+    def test_09_switch_to_all_12_unit_converters(self):
+        """All 12 unit converter modes mount UnitConverterView with proper category."""
+        categories = [
+            "volume", "length", "weight", "temperature", "energy",
+            "area", "speed", "time", "power", "data", "pressure", "angle"
+        ]
+        for cat in categories:
+            self.app.switch_mode(cat)
+            self.assertEqual(self.app.current_mode_id, cat)
+            self.assertIsInstance(self.app.current_view, UnitConverterView)
+            self.assertEqual(self.app.current_view.category, cat)
+
+    def test_10_unit_converter_actions(self):
+        """Tests input, swap, clear, and calculation on a UnitConverterView."""
+        self.app.switch_mode("length")
+        view: UnitConverterView = self.app.current_view
+
+        # Set 10 Meters to Feet
+        view.input_entry.delete(0, "end")
+        view.input_entry.insert(0, "10")
+        view.from_unit_var.set("Meters")
+        view.to_unit_var.set("Feet")
+        view._convert()
+
+        res_str = view.result_label.cget("text")
+        self.assertTrue(float(res_str) > 30.0)
+
+        # Test swap
+        view._swap_units()
+        self.assertEqual(view.from_unit_var.get(), "Feet")
+        self.assertEqual(view.to_unit_var.get(), "Meters")
+
+        # Test clear
+        view._clear_input()
+        self.assertEqual(view.input_entry.get(), "0")
+        self.assertEqual(view.result_label.cget("text"), "0")
 
 
 if __name__ == "__main__":

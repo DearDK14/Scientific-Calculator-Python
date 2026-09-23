@@ -9,6 +9,8 @@ from views.scientific_view import ScientificView
 from views.standard_view import StandardView
 from views.programmer_view import ProgrammerView
 from views.date_view import DateCalcView
+from views.unit_converter_view import UnitConverterView
+from views.currency_view import CurrencyView
 from views.placeholder_view import PlaceholderView
 from views.settings_view import SettingsView
 
@@ -19,6 +21,8 @@ __all__ = [
     "StandardView",
     "ProgrammerView",
     "DateCalcView",
+    "UnitConverterView",
+    "CurrencyView",
     "PlaceholderView",
     "SettingsView",
 ]

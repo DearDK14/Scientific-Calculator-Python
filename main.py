@@ -40,6 +40,8 @@ from views import (
     StandardView,
     ProgrammerView,
     DateCalcView,
+    UnitConverterView,
+    CurrencyView,
     PlaceholderView,
     SettingsView,
 )
@@ -268,6 +270,13 @@ class ModernCalculatorApp(ctk.CTk):
             return ProgrammerView(self.content_container, app=self)
         elif mode_id == "date_calc":
             return DateCalcView(self.content_container, app=self)
+        elif mode_id == "currency":
+            return CurrencyView(self.content_container, app=self)
+        elif mode_id in (
+            "volume", "length", "weight", "temperature", "energy",
+            "area", "speed", "time", "power", "data", "pressure", "angle"
+        ):
+            return UnitConverterView(self.content_container, app=self, category=mode_id)
         elif mode_id == "settings":
             return SettingsView(self.content_container, app=self)
         else:
